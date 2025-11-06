@@ -151,10 +151,10 @@ class Tsp_solver:
                         lower = self.matrice[i][j]
             
             # check si lower et second_lower ne sont pas None avant de les utiliser pour les cas ou il y a des none dans la matrice (non testé)
-            # if lower is not None and second_lower is not None:
-            #     bound += (lower + second_lower)/2
-            # elif lower is not None:
-            #     bound += lower
+            if lower is not None and second_lower is not None:
+                bound += (lower + second_lower)/2
+            elif lower is not None:
+                bound += lower
         
         return bound
         
