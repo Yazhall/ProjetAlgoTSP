@@ -1,15 +1,78 @@
-test_bruteforce = [[0.0, 1.1, 0.79, 0.52, 0.39], [1.1, 0.0, 0.34, 1.0, 0.71], [0.79, 0.34, 0.0, 0.66, 0.41],
-                   [0.52, 1.0, 0.66, 0.0, 0.5], [0.39, 0.71, 0.41, 0.5, 0.0]]
+def generate_cities_coords(cities_nbr: int, seed: int = None) -> dict:
+    if seed is not None:
+        random.seed(seed)
+    cities = {}
+    for city in range(cities_nbr):
+        x = round(random.randint(0,100) / 100, 2)
+        y = round(random.randint(0,100) / 100, 2)
+        cities[city] = (x, y)
+    return cities 
 
+def calculate_distance(first_city: tuple, second_city: tuple) -> float:
+    distance = round((((first_city[0] - second_city[0]) * (first_city[0] - second_city[0])) + ((first_city[1] - second_city[1]) * (first_city[1] - second_city[1]))) ** 0.5, 2)
+    return distance
 
+def euclidian_matrice (cities_with_coords: dict) -> list:
+    matrice = []
+    for i in cities_with_coords:
+        matrice.append([])
+        for j in cities_with_coords:
+            matrice[i].append(calculate_distance(cities_with_coords[i],cities_with_coords[j]))
+    return matrice
+
+def random_matrice(cities_nbr: int, seed: int = None, complete_graph: bool = True) -> list:
+    if seed is not None:
+        random.seed(seed)
+    random_matrice = []
+    for i in range(cities_nbr):
+        random_matrice.append([])
+        for j in range(cities_nbr):
+            if not complete_graph and random.random() < 0.2:
+                random_matrice[i].append(None)
+            elif j == i:
+                random_matrice[i].append(0)
+            elif j < i:
+                random_matrice[i].append(random_matrice[j][i])
+            else:
+                random_matrice[i].append(random.randrange(0, 100))
+    return random_matrice
+
+def create_matrice(cities_nbr: int, seed: int = None, euclidian: bool = True, complete_graph: bool = True) -> list:
+    if euclidian:
+        return euclidian_matrice(cities_nbr, seed)
+    else:
+        return random_matrice(cities_nbr, seed, complete_graph)
+
+def matrice2listeadjacente(matrice: list) -> dict:
+    liste_adjacente = {}
+    for i in range(len(matrice)):
+        liste_adjacente[i+1] = []
+        for j in range(len(matrice[i])):
+            if matrice[i][j] is not None:
+                liste_adjacente[i+1].append(j+1)
+    return liste_adjacente
+
+def write_instance( instance: list, instance_name: str,) -> None:
+    with open(f"{project}/instances/{instance_name}.csv", 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile, delimiter='|')
+        writer.writerows(instance)
+
+def read_instance(instance_name: str):
+    instance = []
+    with open(f"{project}/instances/{instance_name}.csv", 'r', newline='') as csvfile:
+        reader = csv.reader(csvfile, delimiter='|')
+        for row in reader:
+            instance.append(row)
+    return instance
+
+test_bruteforce = [[0.0, 1.1, 0.79, 0.52, 0.39], [1.1, 0.0, 0.34, 1.0, 0.71], [0.79, 0.34, 0.0, 0.66, 0.41], [0.52, 1.0, 0.66, 0.0, 0.5], [0.39, 0.71, 0.41, 0.5, 0.0]]
 # test_bruteforce = [[0.0, 3.1, 0.79, 0.52, 0.39], [3.1, 0.0, 0.34, 1.0, 71], [0.79, 0.34, 0.0, 0.66, 0.41], [0.52, 1.0, 0.66, 0.0, 0.5], [0.39, 71, 0.41, 0.5, 0.0]]
-#
 # test_bruteforce = [
 #         #  A       B        C      D      E
-#     #  A [0.0,    1.1,    0.79,   0.52,   0.39],
-#     #  B [1.1,    0.0,    0.34,   1.0,    0.71],
-#     #  C [0.79,   0.34,   0.0,    0.66,   0.41],
-#     #  D [0.52,   1.0,    0.66,   0.0,    0.5],
+#     #  A [0.0,    1.1,    0.79,   0.52,   0.39], 
+#     #  B [1.1,    0.0,    0.34,   1.0,    0.71], 
+#     #  C [0.79,   0.34,   0.0,    0.66,   0.41], 
+#     #  D [0.52,   1.0,    0.66,   0.0,    0.5], 
 #     #  E [0.39,   0.71,   0.41,   0.5,    0.0]
 #      ]
 
@@ -19,74 +82,139 @@ class Tsp_solver:
     def __init__(self, matrice):
         self.matrice = matrice
         self.n = len(matrice)  # nombre de ville ( n villes)
-        self.petite_distance = None
-        self.meilleur_trajet = None
+        self.smallest = None
+        self.best = None
 
-    # cherche le meilleur chemin,
-    def search(
-            self,
-            ville_actuelle,  # position du voyageur
-            ville_restante,  # liste de ville non visité
-            distance_parcourue,  # distance déjà parcouru pour arrivé jusque ville_actuelle
-            path
-    ):
+    def search(self, current, remaining_cities, coverd_cities,covered_path):
+        if len(remaining_cities) == 0:
+            last_to_first_dist = self.matrice[current][0] 
+            total_dist = coverd_cities + last_to_first_dist
+            full_path = [0] +covered_path + [0]
 
-        # condition de sortie :
-        if len(ville_restante) == 0:
-            retour_départ = self.matrice[ville_actuelle][
-                0]  # retour_depart c'est la distance pour retourné sur A  la ville ded épart ( pas de variable start)
-            total_dist = distance_parcourue + retour_départ  # on ajoute la distance retour_départ pour aoir la distance de la "boucle complete"
-            trajet = [0] + path + [
-                0]  # on par de A ( donc 0) et come on fait une boucle pour retourné vers le départ A ( donc toujours 0) on ajoute au ville traversé (path) 0 avant et aprés
 
-            if self.petite_distance is None or total_dist < self.petite_distance:
-                self.petite_distance = total_dist
-                self.meilleur_trajet = trajet
-            print("trajet suivi:", trajet, "| distance parcouru:", round(total_dist, 2))
+            if self.smallest is None or total_dist < self.smallest:
+                self.smallest = total_dist
+                self.best = full_path
+            # print("trajet suivi:", full_path, "| distance parcouru:", round(total_dist, 2))
             return
-        # TODO branch & bound
-        if self.petite_distance is not None and self.petite_distance < distance_parcourue:
-            print("calcule abort, trop long", round(distance_parcourue, 2))
+
+        if self.smallest is not None and self.smallest < coverd_cities:
             return
 
         i = 0
-        while i < len(ville_restante):
-            prochaine_ville = ville_restante[i]
-            distance_etape = self.matrice[ville_actuelle][
-                prochaine_ville]  # jsp comment l'appeler, c'est la distance entre la prochaine ville et la ville actuelle
-            new_ville_restante = ville_restante[:i] + ville_restante[
-                                                      i + 1:]  # enfaite ici on enleve juste la ville actuele de la liste ville restante
-            new_path = path[
-                       :]  # [:] pour faire une copie de path et non une référence, voir :  https://stackoverflow.com/questions/2612802/how-do-i-clone-a-list-so-that-it-doesnt-change-unexpectedly-after-assignment
-            new_path.append(prochaine_ville)
-            self.search(prochaine_ville, new_ville_restante, distance_parcourue + distance_etape, new_path)
+        while i < len(remaining_cities):
+            next_city = remaining_cities[i]
+            next_step_dist = self.matrice[current][next_city] # jsp comment l'appeler, c'est la distance entre la prochaine ville et la ville actuelle
+            new_remaining_cities = remaining_cities[:i] + remaining_cities[i+1:] # enfaite ici on enleve juste la ville actuele de la liste ville restante
+            new_path =covered_path[:]              # [:] pour faire une copie decovered_path et non une référence, voir :  https://stackoverflow.com/questions/2612802/how-do-i-clone-a-list-so-that-it-doesnt-change-unexpectedly-after-assignment
+            new_path.append(next_city)
+            self.search(next_city, new_remaining_cities, coverd_cities + next_step_dist, new_path)
             i += 1
 
-    def bruteforce(self) -> tuple[float, list[int]]:
 
+    def bruteforce(self) -> tuple[float, list[int]]: 
+        self.smallest = None
+        self.best = None
         if self.n == 0:
             print("La matrice de ville est vide")
-            return (0.0, [])
+            return (0.0,[])
         if self.n == 1:
             print("il n'y a qu'une ville dans la matrice fourni")
-            return (0.0, [])
+            return (0.0,[])
 
-        # construie la liste des villes à visiter
-        ville_a_voir = []
+        remaining_cities = []
         j = 1
         while j < self.n:
-            ville_a_voir.append(j)
+            remaining_cities.append(j)
             j += 1
 
         # construie la liste des villes à visiter (sans predndre en compte la ville de départ 0
-        self.search(0, ville_a_voir, 0.0, [])
-
-        # résumé final
-        print("meilleur tour trouvé:", self.meilleur_trajet, "| distance:", round(self.petite_distance, 6))
-        return (self.petite_distance, self.meilleur_trajet)
+        self.search(0, remaining_cities, 0.0, [])
 
 
-matrice = Tsp_solver(test_bruteforce)
+        print("meilleur tour trouvé:", self.best, "| distance:", round(self.smallest, 6))
+        return (self.smallest, self.best)
 
-resultat = matrice.bruteforce()
+
+    def lower_bound(self, current, remaining_cities): 
+        if len(remaining_cities) == 0:
+            return self.matrice[current][0]
+        
+        bound = 0
+        for i in range(0,self.n):
+            lower = None
+            second_lower = None 
+            for j in remaining_cities:
+                if  i != j and i in remaining_cities and j in remaining_cities:
+                    if lower is None or self.matrice[i][j] < lower :
+                        second_lower = lower
+                        lower = self.matrice[i][j]
+            
+            # check si lower et second_lower ne sont pas None avant de les utiliser pour les cas ou il y a des none dans la matrice (non testé)
+            # if lower is not None and second_lower is not None:
+            #     bound += (lower + second_lower)/2
+            # elif lower is not None:
+            #     bound += lower
+        
+        return bound
+        
+
+    def search_branch_and_bound(self, current, remaining_cities, coverd_cities,covered_path):
+
+        if len(remaining_cities) == 0:
+            last_to_first_dist = self.matrice[current][0] 
+            total_dist = coverd_cities + last_to_first_dist
+            full_path = [0] +covered_path + [0]
+
+
+            if self.smallest is None or total_dist < self.smallest:
+                self.smallest = total_dist
+                self.best = full_path
+            # print("trajet suivi:", full_path, "| distance parcouru:", round(total_dist, 2))
+            return
+
+        if self.smallest is not None and self.smallest < coverd_cities:
+            return
+
+        i = 0
+        while i < len(remaining_cities):
+            next_city = remaining_cities[i]
+            next_step_dist = self.matrice[current][next_city]
+            new_remaining_cities = remaining_cities[:i] + remaining_cities[i+1:]
+            new_path =covered_path[:]
+            new_path.append(next_city)
+            if self.smallest is None or len(remaining_cities) < 2:
+                self.search_branch_and_bound(next_city, new_remaining_cities, coverd_cities + next_step_dist, new_path)
+            elif self.lower_bound( next_city, new_remaining_cities) + coverd_cities + next_step_dist < self.smallest:
+                self.search_branch_and_bound(next_city, new_remaining_cities, coverd_cities + next_step_dist, new_path)
+            i += 1
+
+
+
+    def branch_and_bound(self): 
+        self.smallest = None
+        self.best = None
+        if self.n == 0:
+            print("La matrice de ville est vide")
+            return (0.0,[])
+        if self.n == 1:
+            print("il n'y a qu'une ville dans la matrice fourni")
+            return (0.0,[])
+
+        remaining_cities = []
+        j = 1
+        while j < self.n:
+            remaining_cities.append(j)
+            j += 1
+
+        self.search_branch_and_bound(0, remaining_cities, 0.0, [])
+
+        print("meilleur tour trouvé:", self.best, "| distance:", round(self.smallest, 6))
+        return (self.smallest, self.best)
+
+tsp = Tsp_solver(test_bruteforce)
+
+resultat = tsp.bruteforce()
+
 print(resultat)
+print(tsp.branch_and_bound())
