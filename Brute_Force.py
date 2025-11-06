@@ -1,3 +1,5 @@
+import random
+
 def generate_cities_coords(cities_nbr: int, seed: int = None) -> dict:
     if seed is not None:
         random.seed(seed)
@@ -65,7 +67,7 @@ def read_instance(instance_name: str):
             instance.append(row)
     return instance
 
-test_bruteforce = [[0.0, 1.1, 0.79, 0.52, 0.39], [1.1, 0.0, 0.34, 1.0, 0.71], [0.79, 0.34, 0.0, 0.66, 0.41], [0.52, 1.0, 0.66, 0.0, 0.5], [0.39, 0.71, 0.41, 0.5, 0.0]]
+# test_bruteforce = [[0.0, 0.1, 0.79, 0.52, 0.39], [0.1, 0.0, 0.34, 1.0, 0.71], [0.79, 0.34, 0.0, 0.66, 0.41], [0.52, 1.0, 0.66, 0.0, 0.5], [0.39, 0.71, 0.41, 0.5, 0.0]]
 # test_bruteforce = [[0.0, 3.1, 0.79, 0.52, 0.39], [3.1, 0.0, 0.34, 1.0, 71], [0.79, 0.34, 0.0, 0.66, 0.41], [0.52, 1.0, 0.66, 0.0, 0.5], [0.39, 71, 0.41, 0.5, 0.0]]
 # test_bruteforce = [
 #         #  A       B        C      D      E
@@ -98,15 +100,15 @@ class Tsp_solver:
             # print("trajet suivi:", full_path, "| distance parcouru:", round(total_dist, 2))
             return
 
-        if self.smallest is not None and self.smallest < coverd_cities:
-            return
+        # if self.smallest is not None and self.smallest < coverd_cities:
+        #     return
 
         i = 0
         while i < len(remaining_cities):
             next_city = remaining_cities[i]
-            next_step_dist = self.matrice[current][next_city] # jsp comment l'appeler, c'est la distance entre la prochaine ville et la ville actuelle
-            new_remaining_cities = remaining_cities[:i] + remaining_cities[i+1:] # enfaite ici on enleve juste la ville actuele de la liste ville restante
-            new_path =covered_path[:]              # [:] pour faire une copie decovered_path et non une référence, voir :  https://stackoverflow.com/questions/2612802/how-do-i-clone-a-list-so-that-it-doesnt-change-unexpectedly-after-assignment
+            next_step_dist = self.matrice[current][next_city]
+            new_remaining_cities = remaining_cities[:i] + remaining_cities[i+1:] 
+            new_path =covered_path[:]
             new_path.append(next_city)
             self.search(next_city, new_remaining_cities, coverd_cities + next_step_dist, new_path)
             i += 1
@@ -131,8 +133,7 @@ class Tsp_solver:
         # construie la liste des villes à visiter (sans predndre en compte la ville de départ 0
         self.search(0, remaining_cities, 0.0, [])
 
-
-        print("meilleur tour trouvé:", self.best, "| distance:", round(self.smallest, 6))
+        # print("meilleur tour trouvé:", self.best, "| distance:", round(self.smallest, 6))
         return (self.smallest, self.best)
 
 
@@ -183,12 +184,11 @@ class Tsp_solver:
             new_remaining_cities = remaining_cities[:i] + remaining_cities[i+1:]
             new_path =covered_path[:]
             new_path.append(next_city)
-            if self.smallest is None or len(remaining_cities) < 2:
+            if self.smallest is None or len(remaining_cities) <= 2 or self.lower_bound( next_city, new_remaining_cities) + coverd_cities + next_step_dist < self.smallest:
                 self.search_branch_and_bound(next_city, new_remaining_cities, coverd_cities + next_step_dist, new_path)
-            elif self.lower_bound( next_city, new_remaining_cities) + coverd_cities + next_step_dist < self.smallest:
-                self.search_branch_and_bound(next_city, new_remaining_cities, coverd_cities + next_step_dist, new_path)
+            elif i == 0:
+                self.search(next_city, new_remaining_cities, coverd_cities + next_step_dist, new_path)
             i += 1
-
 
 
     def branch_and_bound(self): 
@@ -209,12 +209,15 @@ class Tsp_solver:
 
         self.search_branch_and_bound(0, remaining_cities, 0.0, [])
 
-        print("meilleur tour trouvé:", self.best, "| distance:", round(self.smallest, 6))
+        # print("meilleur tour trouvé:", self.best, "| distance:", round(self.smallest, 6))
         return (self.smallest, self.best)
 
-tsp = Tsp_solver(test_bruteforce)
+# tsp = Tsp_solver(test_bruteforce)
 
-resultat = tsp.bruteforce()
+tsp = Tsp_solver(create_matrice(10, seed=89898989, euclidian=False))
 
-print(resultat)
-print(tsp.branch_and_bound())
+
+# print("Brute force :", tsp.bruteforce())
+print("B&B :", tsp.branch_and_bound())
+# B&B  1.87s user 0.03s system 97% cpu 1.945 total
+#BrteForce 1.87s user 0.02s system 99% cpu 1.905 total
