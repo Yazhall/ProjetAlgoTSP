@@ -134,7 +134,7 @@ class Tsp_solver:
         self.search(0, remaining_cities, 0.0, [])
 
         # print("meilleur tour trouvé:", self.best, "| distance:", round(self.smallest, 6))
-        return (self.smallest, self.best)
+        return (self.best, self.smallest)
 
 
     def lower_bound(self, current, remaining_cities): 
@@ -210,14 +210,47 @@ class Tsp_solver:
         self.search_branch_and_bound(0, remaining_cities, 0.0, [])
 
         # print("meilleur tour trouvé:", self.best, "| distance:", round(self.smallest, 6))
-        return (self.smallest, self.best)
+        return (self.best, self.smallest)
+
+
+    def nearest_neighbourg(self):
+    
+        nearest = None
+        current = 0
+        total_dist = 0
+        remaining_cities = []
+        path = [current]
+
+        i = 1
+        while i < self.n:
+            remaining_cities.append(i)
+            i += 1
+        
+        while len(path) < self.n:
+            nearest_dist = None
+            for k in remaining_cities:
+                if nearest_dist is None or nearest_dist < self.matrice[current][k] and k not in path:
+                    nearest_dist = self.matrice[current][k]
+                    nearest = k
+
+            total_dist += nearest_dist
+            current = nearest
+            path.append(current)
+
+            
+        # print("trajet suivi:", path + [0], "| distance parcouru:", round(total_dist, 2))
+        return (path + [0], total_dist)
+
+
 
 # tsp = Tsp_solver(test_bruteforce)
 
 tsp = Tsp_solver(create_matrice(10, seed=89898989, euclidian=False))
 
 
+# print("matrice",tsp.matrice)
 # print("Brute force :", tsp.bruteforce())
 print("B&B :", tsp.branch_and_bound())
+print("NEAREST :", tsp.nearest_neighbourg())
 # B&B  1.87s user 0.03s system 97% cpu 1.945 total
 #BrteForce 1.87s user 0.02s system 99% cpu 1.905 total
