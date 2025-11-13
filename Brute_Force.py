@@ -1,4 +1,7 @@
 import random
+import csv
+
+project = "."
 
 def generate_cities_coords(cities_nbr: int, seed: int = None) -> dict:
     if seed is not None:
@@ -241,16 +244,73 @@ class Tsp_solver:
         # print("trajet suivi:", path + [0], "| distance parcouru:", round(total_dist, 2))
         return (path + [0], total_dist)
 
+    
+    def cheapest_insertion(self):
+        if self.n == 0:
+            print("La matrice de ville est vide")
+            return ([], 0.0)
+        if self.n == 1:
+            return ([0, 0], 0.0)
+
+        nearest_city = None
+        nearest_dist = None
+
+        for city in range(1, self.n):
+            distance = self.matrice[0][city]
+            if nearest_dist is None or distance < nearest_dist:
+                nearest_dist = distance
+                nearest_city = city
+
+        if nearest_city is None:
+            print("Impossible de trouver une ville atteignable depuis la ville 0")
+            return (None,None)
+
+        tour = [0, nearest_city, 0]
+        visited = set(tour[:-1])
+
+        while len(visited) < self.n:
+            best_city = None
+            best_position = None
+            best_increase = None
+
+            for city in range(self.n):
+                if city not in visited:
+                    for idx in range(len(tour) - 1):
+                        i = tour[idx]
+                        j = tour[idx + 1]
+                        dist_ij = self.matrice[i][j]
+                        dist_ic = self.matrice[i][city]
+                        dist_cj = self.matrice[city][j]
+
+                        if dist_ij is not None and dist_ic is not None and dist_cj is not None:
+                            increase = dist_ic + dist_cj - dist_ij
+                            if best_increase is None or increase < best_increase:
+                                best_increase = increase
+                                best_city = city
+                                best_position = idx
+
+            tour.insert(best_position + 1, best_city)
+            visited.add(best_city)
+
+        total_dist = 0.0
+        for idx in range(len(tour) - 1):
+            dist = self.matrice[tour[idx]][tour[idx + 1]]
+            total_dist += dist
+
+        return (tour, total_dist)
+
+    
 
 
-# tsp = Tsp_solver(test_bruteforce)
 
-tsp = Tsp_solver(create_matrice(10, seed=89898989, euclidian=False))
+tsp = Tsp_solver(create_matrice(14, seed=89898989, euclidian=False))
 
 
 # print("matrice",tsp.matrice)
 # print("Brute force :", tsp.bruteforce())
-print("B&B :", tsp.branch_and_bound())
-print("NEAREST :", tsp.nearest_neighbourg())
+# print("B&B :", tsp.branch_and_bound())
+# print("NEAREST :", tsp.nearest_neighbourg())
+print("CHEAPEST :", tsp.cheapest_insertion())
+# print("TLS CHEAPEST :", tsp.tls_cheapest_neighbor(0, 1))
 # B&B  1.87s user 0.03s system 97% cpu 1.945 total
 #BrteForce 1.87s user 0.02s system 99% cpu 1.905 total
