@@ -1,28 +1,31 @@
 import random
 import csv
+import math
+import time
 
 project = "."
 
-def generate_cities_coords(cities_nbr: int, seed: int = None) -> dict:
+def generate_cities_coords(cities_nbr: int, seed: int = None) -> list:
     if seed is not None:
         random.seed(seed)
-    cities = {}
-    for city in range(cities_nbr):
+    cities = []
+    for _ in range(cities_nbr):
         x = round(random.randint(0,100) / 100, 2)
         y = round(random.randint(0,100) / 100, 2)
-        cities[city] = (x, y)
+        cities.append((x, y))
     return cities 
 
 def calculate_distance(first_city: tuple, second_city: tuple) -> float:
-    distance = round((((first_city[0] - second_city[0]) * (first_city[0] - second_city[0])) + ((first_city[1] - second_city[1]) * (first_city[1] - second_city[1]))) ** 0.5, 2)
+    distance = (((first_city[0] - second_city[0]) ** 2) + ((first_city[1] - second_city[1]) ** 2)) ** 0.5
     return distance
 
-def euclidian_matrice (cities_with_coords: dict) -> list:
+def euclidian_matrice(cities: list) -> list:
     matrice = []
-    for i in cities_with_coords:
+    for i in range(len(cities)):
         matrice.append([])
-        for j in cities_with_coords:
-            matrice[i].append(calculate_distance(cities_with_coords[i],cities_with_coords[j]))
+        for j in range(len(cities)):
+            # We ceil here instead of round or floor to respect triangle inequality
+            matrice[i].append(math.ceil(calculate_distance(cities[i],cities[j]) * 100 ) / 100)
     return matrice
 
 def random_matrice(cities_nbr: int, seed: int = None, complete_graph: bool = True) -> list:
@@ -44,7 +47,7 @@ def random_matrice(cities_nbr: int, seed: int = None, complete_graph: bool = Tru
 
 def create_matrice(cities_nbr: int, seed: int = None, euclidian: bool = True, complete_graph: bool = True) -> list:
     if euclidian:
-        return euclidian_matrice(cities_nbr, seed)
+        return euclidian_matrice(generate_cities_coords(cities_nbr, seed))
     else:
         return random_matrice(cities_nbr, seed, complete_graph)
 
@@ -118,13 +121,15 @@ class Tsp_solver:
 
 
     def bruteforce(self) -> tuple[float, list[int]]: 
+        start_time = time.process_time()
+
         self.smallest = None
         self.best = None
         if self.n == 0:
-            print("La matrice de ville est vide")
+            # print("La matrice de ville est vide")
             return (0.0,[])
         if self.n == 1:
-            print("il n'y a qu'une ville dans la matrice fourni")
+            # print("il n'y a qu'une ville dans la matrice fourni")
             return (0.0,[])
 
         remaining_cities = []
@@ -135,6 +140,9 @@ class Tsp_solver:
 
         # construie la liste des villes à visiter (sans predndre en compte la ville de départ 0
         self.search(0, remaining_cities, 0.0, [])
+
+        end_time = time.process_time()
+        print(f"Brute force comput time: {end_time - start_time:.6f} seconds")
 
         # print("meilleur tour trouvé:", self.best, "| distance:", round(self.smallest, 6))
         return (self.best, self.smallest)
@@ -195,13 +203,16 @@ class Tsp_solver:
 
 
     def branch_and_bound(self): 
+        start_time = time.process_time()
+
+
         self.smallest = None
         self.best = None
         if self.n == 0:
-            print("La matrice de ville est vide")
+            # print("La matrice de ville est vide")
             return (0.0,[])
         if self.n == 1:
-            print("il n'y a qu'une ville dans la matrice fourni")
+            # print("il n'y a qu'une ville dans la matrice fourni")
             return (0.0,[])
 
         remaining_cities = []
@@ -212,12 +223,14 @@ class Tsp_solver:
 
         self.search_branch_and_bound(0, remaining_cities, 0.0, [])
 
+        end_time = time.process_time()
+        print(f"B&B comput time: {end_time - start_time:.6f} seconds")
         # print("meilleur tour trouvé:", self.best, "| distance:", round(self.smallest, 6))
         return (self.best, self.smallest)
 
 
     def nearest_neighbourg(self):
-    
+        start_time = time.process_time()
         nearest = None
         current = 0
         total_dist = 0
@@ -232,20 +245,23 @@ class Tsp_solver:
         while len(path) < self.n:
             nearest_dist = None
             for k in remaining_cities:
-                if nearest_dist is None or nearest_dist < self.matrice[current][k] and k not in path:
+                if (nearest_dist is None or nearest_dist < self.matrice[current][k]) and k not in path:
                     nearest_dist = self.matrice[current][k]
                     nearest = k
 
             total_dist += nearest_dist
             current = nearest
             path.append(current)
+        end_time = time.process_time()
+        print(f"near comput time: {end_time - start_time:.6f} seconds")
 
-            
         # print("trajet suivi:", path + [0], "| distance parcouru:", round(total_dist, 2))
-        return (path + [0], total_dist)
+        return {"path":path + [0],"dist": total_dist}
+
 
     
     def cheapest_insertion(self):
+        start_time = time.process_time()
         if self.n == 0:
             print("La matrice de ville est vide")
             return ([], 0.0)
@@ -297,20 +313,63 @@ class Tsp_solver:
             dist = self.matrice[tour[idx]][tour[idx + 1]]
             total_dist += dist
 
-        return (tour, total_dist)
-
-    
-
-
-
-tsp = Tsp_solver(create_matrice(14, seed=89898989, euclidian=False))
+        end_time = time.process_time()
+        print(f"cheap comput time: {end_time - start_time:.6} seconds")
+        return {"path":tour, "total_dist":total_dist}
 
 
+
+    def calculate_total_distance(self, path):
+        total = 0.0
+        for k in range(len(path) - 1):
+            total += self.matrice[path[k]][path[k + 1]]
+        return total
+
+    def two_opt_solver(self, path):
+        start_time = time.process_time()
+        best_distance = self.calculate_total_distance(path)
+        opti = True
+        while opti is True:
+            opti = False
+            for i in range (1,len(path)-2):
+                for j in range (i+2,len(path)-1):
+                    # if j != i-1 and j != i and j != i+1:
+                        a,b = path[i],path[i+1]
+                        c,d = path[j],path[j+1]
+
+                        old = self.matrice[a][b] + self.matrice[c][d]
+                        # print(old)
+                        new = self.matrice[a][c] + self.matrice[b][d]
+                        # print(new)
+                        if old > new:
+        
+                            path[i+1:j+1] = path[i+1:j+1][::-1]
+                            best_distance += new - old
+                            opti = True
+        end_time = time.process_time()
+        print(f"2opt comput time: {end_time - start_time:.6} seconds")
+        return (path, best_distance)
+
+# tsp = Tsp_solver(create_matrice(10, seed=1))
+# print(tsp.matrice)
+input_matrix = [
+        [0.0, 1.03, 0.59, 0.53, 0.42, 0.71, 0.95, 0.12],
+         [1.03, 0.0, 0.66, 0.96, 0.66, 0.43, 0.19, 1.01],
+         [0.59, 0.66, 0.0, 0.88, 0.52, 0.61, 0.69, 0.52],
+         [0.53, 0.96, 0.88, 0.0, 0.38, 0.53, 0.81, 0.62],
+         [0.42, 0.66, 0.52, 0.38, 0.0, 0.29, 0.55, 0.46],
+         [0.71, 0.43, 0.61, 0.53, 0.29, 0.0, 0.28, 0.73],
+         [0.95, 0.19, 0.69, 0.81, 0.55, 0.28, 0.0, 0.96],
+         [0.12, 1.01, 0.52, 0.62, 0.46, 0.73, 0.96, 0.0]
+    ]
+
+# tsp = Tsp_solver(input_matrix)
 # print("matrice",tsp.matrice)
-# print("Brute force :", tsp.bruteforce())
+print("Brute force :", tsp.bruteforce())
 # print("B&B :", tsp.branch_and_bound())
 # print("NEAREST :", tsp.nearest_neighbourg())
-print("CHEAPEST :", tsp.cheapest_insertion())
-# print("TLS CHEAPEST :", tsp.tls_cheapest_neighbor(0, 1))
+# print("CHEAPEST :", tsp.cheapest_insertion())
+# print("2opt :", tsp.two_opt_solver(tsp.cheapest_insertion()["path"]))
+
 # B&B  1.87s user 0.03s system 97% cpu 1.945 total
 #BrteForce 1.87s user 0.02s system 99% cpu 1.905 total
