@@ -6,6 +6,7 @@ import os
 import json
 
 def generate_cities_coords(cities_nbr, seed=None):
+    """Generates random coordinates in [0,1]^2 for n cities."""
     if seed is not None:
         random.seed(seed)
     cities = []
@@ -16,10 +17,12 @@ def generate_cities_coords(cities_nbr, seed=None):
     return cities
 
 def calculate_distance(first_city, second_city):
+    """return distance between two points."""
     distance = (((first_city[0] - second_city[0]) ** 2) + ((first_city[1] - second_city[1]) ** 2)) ** 0.5
     return distance
-
+    
 def euclidian_matrice(cities):
+    """Builds the complete Euclidean matrice from a list of coordinates."""
     matrice = []
     for i in range(len(cities)):
         matrice.append([])
@@ -29,6 +32,7 @@ def euclidian_matrice(cities):
     return matrice
 
 def random_matrice(cities_nbr, seed=None, complete_graph=True):
+    """Builds a symmetric weighted random matrice (with or without missing edges)."""
     if seed is not None:
         random.seed(seed)
     random_matrice = []
@@ -42,12 +46,14 @@ def random_matrice(cities_nbr, seed=None, complete_graph=True):
             elif j < i:
                 random_matrice[i].append(random_matrice[j][i])
             else:
-                random_matrice[i].append(random.randrange(0, 100))
+                # poids strictement positifs, bornés à 100 inclus
+                random_matrice[i].append(random.randint(1, 100))
     return random_matrice
 
 def force_triangle_inequality(matrice):
     """
     Forces the triangle inequality on a given distance matrix using Floyd-Warshall.
+
     Args:
         matrice (list[list]): The distance matrix to modify.
     Returns:
@@ -68,6 +74,19 @@ def force_triangle_inequality(matrice):
     return matrice
 
 def create_matrice(cities_nbr, seed=None, euclidian=True, complete_graph=True, force_triangle=False):
+    """
+    Generates random matrice, with an option to enforce the triangle inequality.
+    Note: If 'euclidian' is True, the parameters 'complete_graph' and 'force_triangle' are obsolete.
+    Args:
+        cities_nbr (int): Number of cities.
+        seed (int, optional): Seed for random number generator.
+        euclidian (bool, optional): If True, generates Euclidean distances.
+        complete_graph (bool, optional): If True, generates a complete graph.
+        force_triangle (bool, optional): If True, enforces the triangle inequality.
+    Returns:
+        list[list]: The generated distance matrix.
+    """
+    
     if euclidian:
         return euclidian_matrice(generate_cities_coords(cities_nbr, seed))
     else:
@@ -165,7 +184,9 @@ class Tsp_solver:
         if verbose:
             self.nodes_bruteforce += 1
         if len(remaining_cities) == 0:
-            last_to_first_dist = self.matrice[current][0] 
+            last_to_first_dist = self.matrice[current][0]
+            if last_to_first_dist is None:
+                return
             total_dist = covered_cities + last_to_first_dist
             full_path = [0] + covered_path + [0]
 
@@ -184,6 +205,9 @@ class Tsp_solver:
         while i < len(remaining_cities):
             next_city = remaining_cities[i]
             next_step_dist = self.matrice[current][next_city]
+            if next_step_dist is None:
+                i += 1
+                continue
             new_remaining_cities = remaining_cities[:i] + remaining_cities[i+1:] 
             new_path = covered_path[:]
             new_path.append(next_city)
@@ -220,8 +244,8 @@ class Tsp_solver:
         self.search(0, remaining_cities, 0.0, [], verbose)
 
         end_time = time.perf_counter()
-        print(f"Brute force comput time: {end_time - start_time:.6f} seconds")
         if verbose:
+            print(f"Brute force comput time: {end_time - start_time:.6f} seconds")
             print(f"Brute force nodes explored: {self.nodes_bruteforce}")
             print("meilleur tour trouvé:", self.best, "| distance:", round(self.smallest, 6))
         return (self.best, self.smallest)
@@ -282,6 +306,8 @@ class Tsp_solver:
             self.nodes_bb += 1
         if len(remaining_cities) == 0:
             last_to_first_dist = self.matrice[current][0]
+            if last_to_first_dist is None:
+                return
             total_dist = covered_cities + last_to_first_dist
             full_path = [0] + covered_path + [0]
 
@@ -299,6 +325,9 @@ class Tsp_solver:
         while i < len(remaining_cities):
             next_city = remaining_cities[i]
             next_step_dist = self.matrice[current][next_city]
+            if next_step_dist is None:
+                i += 1
+                continue
             new_remaining_cities = remaining_cities[:i] + remaining_cities[i+1:]
             new_path = covered_path[:]
             new_path.append(next_city)
@@ -348,7 +377,7 @@ class Tsp_solver:
     def nearest_neighbourg(self, verbose=False):
         """
         Solve the TSP using the nearest neighbor heuristic.
-
+        Note: This implementation assumes the graph is complete.
         Args:
             verbose (bool, optional): If True, prints details of the computation.
 
@@ -370,15 +399,28 @@ class Tsp_solver:
         while len(path) < self.n:
             nearest_dist = None
             for k in remaining_cities:
-                if (nearest_dist is None or nearest_dist >= self.matrice[current][k]) and k not in path:
-                    nearest_dist = self.matrice[current][k]
+                w = self.matrice[current][k]
+                if w is None:
+                    continue
+                if (nearest_dist is None or nearest_dist >= w) and k not in path:
+                    nearest_dist = w
                     nearest = k
+
+            if nearest_dist is None:
+                if verbose:
+                    print("Nearest neighbor: graphe incomplet, aucune arête disponible.")
+                return {"path": [], "dist": None}
 
             total_dist += nearest_dist
             current = nearest
             path.append(current)
             if verbose:
                 print(f"Visited city: {current}, Total distance: {total_dist}")
+
+        if self.matrice[current][0] is None:
+            if verbose:
+                print("Nearest neighbor: impossible de revenir à 0.")
+            return {"path": [], "dist": None}
 
         total_dist += self.matrice[current][0]
         end_time = time.perf_counter()
@@ -409,6 +451,8 @@ class Tsp_solver:
 
         for city in range(1, self.n):
             distance = self.matrice[0][city]
+            if distance is None:
+                continue
             if nearest_dist is None or distance < nearest_dist:
                 nearest_dist = distance
                 nearest_city = city
@@ -441,6 +485,10 @@ class Tsp_solver:
                                 best_city = city
                                 best_position = idx
 
+            if best_city is None:
+                print("Cheapest insertion: aucune insertion faisable (graph incomplet).")
+                return {"path": None, "total_dist": None}
+
             tour.insert(best_position + 1, best_city)
             visited.add(best_city)
             if verbose:
@@ -449,6 +497,9 @@ class Tsp_solver:
         total_dist = 0.0
         for idx in range(len(tour) - 1):
             dist = self.matrice[tour[idx]][tour[idx + 1]]
+            if dist is None:
+                print("Cheapest insertion: arête manquante dans le tour final.")
+                return {"path": tour, "total_dist": None}
             total_dist += dist
 
         end_time = time.perf_counter()
@@ -458,9 +509,13 @@ class Tsp_solver:
         return {"path": tour, "total_dist": total_dist}
 
     def calculate_total_distance(self, path):
+        """Calcule la longueur d'un chemin; retourne inf si une arête est absente."""
         total = 0.0
         for k in range(len(path) - 1):
-            total += self.matrice[path[k]][path[k + 1]]
+            dist = self.matrice[path[k]][path[k + 1]]
+            if dist is None:
+                return math.inf
+            total += dist
         return total
 
     def two_opt_solver(self, path, verbose=False, max_iterations=1000):
@@ -486,8 +541,14 @@ class Tsp_solver:
                     a, b = path[i], path[i + 1]
                     c, d = path[j], path[j + 1]
 
-                    old = self.matrice[a][b] + self.matrice[c][d]
-                    new = self.matrice[a][c] + self.matrice[b][d]
+                    old_ab = self.matrice[a][b]
+                    old_cd = self.matrice[c][d]
+                    new_ac = self.matrice[a][c]
+                    new_bd = self.matrice[b][d]
+                    if None in (old_ab, old_cd, new_ac, new_bd):
+                        continue
+                    old = old_ab + old_cd
+                    new = new_ac + new_bd
                     if old > new:
                         path[i + 1:j + 1] = path[i + 1:j + 1][::-1]
                         best_distance += new - old
@@ -503,7 +564,7 @@ class Tsp_solver:
         return (path, best_distance)
 
 
-# tsp = Tsp_solver(create_matrice(10, seed=1, euclidian=True, complete_graph=True, force_triangle=False))
+tsp = Tsp_solver(create_matrice(10, seed=None, euclidian=False, complete_graph=False, force_triangle=False))
 
 
 # input_matrix = [
@@ -518,11 +579,11 @@ class Tsp_solver:
 #     ]
 # tsp = Tsp_solver(input_matrix)
 # eucli_complet = create_matrice(10, seed=1, euclidian=True, complete_graph=True, force_triangle=False)
-non_eucli_complet = create_matrice(10, None, False, True, True)
-non_eucli_non_complet = create_matrice(10, None, False, False)
-eucli_non_complet = create_matrice(10, None, True)
+# non_eucli_complet = create_matrice(10, None, False, True, True)
+# non_eucli_non_complet = create_matrice(10, None, False, False)
+# eucli_non_complet = create_matrice(10, None, True)
 
-write_instance(eucli_complet,"eucli_complet")
+write_instance(tsp.matrice,"test non complet")
 # write_instance(non_eucli_complet,"non_eucli_complet")
 # write_instance(eucli_non_complet,"eucli_non_complet")
 # write_instance(non_eucli_non_complet,"non_eucli_non_complet")
@@ -534,10 +595,10 @@ write_instance(eucli_complet,"eucli_complet")
 
 
 # print("matrice",tsp.matrice)
-# print("Brute force :", tsp.bruteforce(True))
-# print("B&B :", tsp.branch_and_bound())
-# print("NEAREST :", tsp.nearest_neighbourg())
-# print("CHEAPEST :", tsp.cheapest_insertion())
+print("Brute force :", tsp.bruteforce())
+print("B&B :", tsp.branch_and_bound())
+print("NEAREST :", tsp.nearest_neighbourg())
+print("CHEAPEST :", tsp.cheapest_insertion())
 print("2opt :", tsp.two_opt_solver(tsp.nearest_neighbourg()["path"]))
 
 # print("Nodes explored Bruteforce:", tsp.nodes_bruteforce)

@@ -9,19 +9,11 @@ attendu du rapport
  (i) matrice des distances D ∈ R^(n×n) 
  (ii) liste d’adjacence annotée (utile pour des graphes non complets)
 
-export/import :
-Fournissez un format simple (JSON/CSV) pour stocker/charger un
-ensemble de villes et sa matrice de distances. Fournissez un script d’import/export
-
 validation :
 Vérifiez que D est symétrique (cas métrique), que Dii = 0, et signalez les incohérences.
 
-Générateur euclidien: Générer n ∈ {10, 20, 30, 40} points aléatoires dans [0, 1]^2, distances euclidiennes.
-Générateur pondéré: Générer une matrice D aléatoire symétrique à valeurs entières dans un intervalle donné (p. ex. [1, 100]).
+
 Possibilité de graphes non complets en masquant certaines arêtes.
-
-Contrôles:  et l’option d’imposer (ou non) l’inégalité triangulaire.
-
 
 Interface utilisateur et fonctionnalités:
 Exigences minimales.
