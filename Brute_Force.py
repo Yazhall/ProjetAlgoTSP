@@ -433,40 +433,53 @@ class Tsp_solver:
         return {"path": tour, "total_dist": total_dist}
 
 
-
     def calculate_total_distance(self, path):
         total = 0.0
         for k in range(len(path) - 1):
             total += self.matrice[path[k]][path[k + 1]]
         return total
 
-    def two_opt_solver(self, path):
+    def two_opt_solver(self, path, verbose=False):
+        """
+        Improve a given TSP path using the 2-opt algorithm.
+        Args:
+            path (list): Initial TSP path to improve.
+            verbose (bool, optional): If True, prints details of the computation.
+        Returns:
+            tuple: (improved path (list), total distance (float)).
+        """
         start_time = time.perf_counter()
         best_distance = self.calculate_total_distance(path)
+        initial_dist = best_distance
         opti = True
+        iterations = 0
         while opti is True:
+            iterations += 1
             opti = False
             for i in range (1,len(path)-2):
                 for j in range (i+2,len(path)-1):
                     # if j != i-1 and j != i and j != i+1:
-                        a,b = path[i],path[i+1]
-                        c,d = path[j],path[j+1]
+                    a,b = path[i],path[i+1]
+                    c,d = path[j],path[j+1]
 
-                        old = self.matrice[a][b] + self.matrice[c][d]
-                        # print(old)
-                        new = self.matrice[a][c] + self.matrice[b][d]
-                        # print(new)
-                        if old > new:
-        
-                            path[i+1:j+1] = path[i+1:j+1][::-1]
-                            best_distance += new - old
-                            opti = True
+                    old = self.matrice[a][b] + self.matrice[c][d]
+                    new = self.matrice[a][c] + self.matrice[b][d]
+                    if old > new:
+                        path[i+1:j+1] = path[i+1:j+1][::-1]
+                        best_distance += new - old
+                        opti = True
+                if opti:
+                    break
         end_time = time.perf_counter()
-        print(f"2opt comput time: {end_time - start_time:.6} seconds")
+        if verbose:
+            gain = initial_dist - best_distance
+            rel = (gain / initial_dist * 100) if initial_dist != 0 else 0
+            print(f"2opt initial: {initial_dist:.4f}, final: {best_distance:.4f}, gain: {gain:.4f} ({rel:.2f}%), iters: {iterations}")
+        print(f"2opt comput time: {end_time - start_time:.6f} seconds")
         return (path, best_distance)
 
 
-tsp = Tsp_solver(create_matrice(10, seed=1))
+tsp = Tsp_solver(create_matrice(100, seed=1))
 
 
 # input_matrix = [
@@ -501,7 +514,7 @@ tsp = Tsp_solver(create_matrice(10, seed=1))
 # print("B&B :", tsp.branch_and_bound())
 # print("NEAREST :", tsp.nearest_neighbourg())
 # print("CHEAPEST :", tsp.cheapest_insertion())
-# print("2opt :", tsp.two_opt_solver(tsp.cheapest_insertion()["path"]))
+print("2opt :", tsp.two_opt_solver(tsp.nearest_neighbourg()["path"], verbose=True))
 
 # print("Nodes explored Bruteforce:", tsp.nodes_bruteforce)
 # print("Nodes explored B&B:", tsp.nodes_bb)
