@@ -19,13 +19,9 @@ Vérifiez que D est symétrique (cas métrique), que Dii = 0, et signalez les in
 Générateur euclidien: Générer n ∈ {10, 20, 30, 40} points aléatoires dans [0, 1]^2, distances euclidiennes.
 Générateur pondéré: Générer une matrice D aléatoire symétrique à valeurs entières dans un intervalle donné (p. ex. [1, 100]).
 Possibilité de graphes non complets en masquant certaines arêtes.
-Contrôles: Offrir des paramètres reproductibles (seed), des tailles configurables, et l’option d’imposer (ou non) l’inégalité triangulaire.
 
+Contrôles:  et l’option d’imposer (ou non) l’inégalité triangulaire.
 
-2opt Exigences minimales:
-— Implémenter 2-opt (version first-improvement ou best-improvement).
-— Mesurer l’amélioration de la distance par rapport à la solution gloutonne initiale. (le mettre dans le mode verbose)
-— Étudier l’impact de différents critères d’arrêt (aucune amélioration, nombre max d’itérations, temps limite).
 
 Interface utilisateur et fonctionnalités:
 Exigences minimales.

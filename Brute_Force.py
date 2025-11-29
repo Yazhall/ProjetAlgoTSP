@@ -5,15 +5,15 @@ import time
 import os
 import json
 
-def generate_cities_coords(cities_nbr, seed = None):
+def generate_cities_coords(cities_nbr, seed=None):
     if seed is not None:
         random.seed(seed)
     cities = []
     for _ in range(cities_nbr):
-        x = round(random.randint(0,100) / 100, 2)
-        y = round(random.randint(0,100) / 100, 2)
+        x = round(random.randint(0, 100) / 100, 2)
+        y = round(random.randint(0, 100) / 100, 2)
         cities.append((x, y))
-    return cities 
+    return cities
 
 def calculate_distance(first_city, second_city):
     distance = (((first_city[0] - second_city[0]) ** 2) + ((first_city[1] - second_city[1]) ** 2)) ** 0.5
@@ -25,10 +25,10 @@ def euclidian_matrice(cities):
         matrice.append([])
         for j in range(len(cities)):
             # We ceil here instead of round or floor to respect triangle inequality
-            matrice[i].append(math.ceil(calculate_distance(cities[i],cities[j]) * 100 ) / 100)
+            matrice[i].append(math.ceil(calculate_distance(cities[i], cities[j]) * 100) / 100)
     return matrice
 
-def random_matrice(cities_nbr, seed = None, complete_graph = True):
+def random_matrice(cities_nbr, seed=None, complete_graph=True):
     if seed is not None:
         random.seed(seed)
     random_matrice = []
@@ -45,11 +45,36 @@ def random_matrice(cities_nbr, seed = None, complete_graph = True):
                 random_matrice[i].append(random.randrange(0, 100))
     return random_matrice
 
-def create_matrice(cities_nbr, seed = None, euclidian = True, complete_graph = True):
+def force_triangle_inequality(matrice):
+    """
+    Forces the triangle inequality on a given distance matrix using Floyd-Warshall.
+    Args:
+        matrice (list[list]): The distance matrix to modify.
+    Returns:
+        list[list]: The modified matrix with the triangle inequality forced.
+    """
+    n = len(matrice)
+    for k in range(n):
+        for i in range(n):
+            if matrice[i][k] is None:
+                continue
+            for j in range(n):
+                if matrice[k][j] is None:
+                    continue
+                potential_distance = matrice[i][k] + matrice[k][j]
+                if matrice[i][j] is None or potential_distance < matrice[i][j]:
+                    matrice[i][j] = potential_distance
+                    matrice[j][i] = potential_distance
+    return matrice
+
+def create_matrice(cities_nbr, seed=None, euclidian=True, complete_graph=True, force_triangle=False):
     if euclidian:
         return euclidian_matrice(generate_cities_coords(cities_nbr, seed))
     else:
-        return random_matrice(cities_nbr, seed, complete_graph)
+        matrice = random_matrice(cities_nbr, seed, complete_graph)
+        if force_triangle:
+            matrice = force_triangle_inequality(matrice)
+        return matrice
 
 def matrice2listeadjacente(matrice):
     """Retourne une liste d'adjacence annotée [(voisin, poids), ...] pour chaque sommet."""
@@ -432,7 +457,6 @@ class Tsp_solver:
 
         return {"path": tour, "total_dist": total_dist}
 
-
     def calculate_total_distance(self, path):
         total = 0.0
         for k in range(len(path) - 1):
@@ -475,11 +499,11 @@ class Tsp_solver:
             gain = initial_dist - best_distance
             rel = (gain / initial_dist * 100) if initial_dist != 0 else 0
             print(f"2opt initial: {initial_dist:.4f}, final: {best_distance:.4f}, gain: {gain:.4f} ({rel:.2f}%), iters: {iterations}")
-        print(f"2opt comput time: {end_time - start_time:.6f} seconds")
+            print(f"2opt comput time: {end_time - start_time:.6f} seconds")
         return (path, best_distance)
 
 
-tsp = Tsp_solver(create_matrice(100, seed=1))
+# tsp = Tsp_solver(create_matrice(10, seed=1, euclidian=True, complete_graph=True, force_triangle=False))
 
 
 # input_matrix = [
@@ -493,12 +517,12 @@ tsp = Tsp_solver(create_matrice(100, seed=1))
 #          [0.12, 1.01, 0.52, 0.62, 0.46, 0.73, 0.96, 0.0]
 #     ]
 # tsp = Tsp_solver(input_matrix)
-# eucli_complet = create_matrice(10)
-# non_eucli_complet = create_matrice(10,None,False)
-# non_eucli_non_complet = create_matrice(10,None,False,False)
-# eucli_non_complet = create_matrice(10,None,True)
+# eucli_complet = create_matrice(10, seed=1, euclidian=True, complete_graph=True, force_triangle=False)
+non_eucli_complet = create_matrice(10, None, False, True, True)
+non_eucli_non_complet = create_matrice(10, None, False, False)
+eucli_non_complet = create_matrice(10, None, True)
 
-# write_instance(eucli_complet,"eucli_complet")
+write_instance(eucli_complet,"eucli_complet")
 # write_instance(non_eucli_complet,"non_eucli_complet")
 # write_instance(eucli_non_complet,"eucli_non_complet")
 # write_instance(non_eucli_non_complet,"non_eucli_non_complet")
@@ -514,7 +538,7 @@ tsp = Tsp_solver(create_matrice(100, seed=1))
 # print("B&B :", tsp.branch_and_bound())
 # print("NEAREST :", tsp.nearest_neighbourg())
 # print("CHEAPEST :", tsp.cheapest_insertion())
-print("2opt :", tsp.two_opt_solver(tsp.nearest_neighbourg()["path"], True, 21))
+print("2opt :", tsp.two_opt_solver(tsp.nearest_neighbourg()["path"]))
 
 # print("Nodes explored Bruteforce:", tsp.nodes_bruteforce)
 # print("Nodes explored B&B:", tsp.nodes_bb)
