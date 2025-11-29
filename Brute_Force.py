@@ -120,6 +120,8 @@ class Tsp_solver:
         self.n = len(matrice)  # nombre de ville ( n villes)
         self.smallest = None
         self.best = None
+        self.nodes_bruteforce = 0
+        self.nodes_bb = 0
     
     def search(self, current, remaining_cities, covered_cities, covered_path, verbose=False):
         """
@@ -130,11 +132,13 @@ class Tsp_solver:
             remaining_cities (list): List of indices of cities not yet visited.
             covered_cities (float): The total distance covered.
             covered_path (list): The path of cities visited.
-            verbose (bool, optional): If True, prints the current path and distance. False by default.
+            verbose (bool, optional): Active mode verbose, prints details of the computation.
 
         Return:
             None: Updates the smallest distance and best path attributes of the instance.
         """
+        if verbose:
+            self.nodes_bruteforce += 1
         if len(remaining_cities) == 0:
             last_to_first_dist = self.matrice[current][0] 
             total_dist = covered_cities + last_to_first_dist
@@ -163,16 +167,17 @@ class Tsp_solver:
 
     def bruteforce(self, verbose=False):
         """
-        Solves the TSP using brute force.
+        Solve the TSP using brute force.
 
         Args:
-            verbose (bool): If True, prints details. Defaults to False.
+            verbose (bool, optional): Active mode verbose, prints details of the computation.
 
         Returns:
-            tuple: (best route as list, total distance as float).
+            tuple: (best route (list), total distance (float)).
         """
+        if verbose:
+            self.nodes_bruteforce = 0
         start_time = time.perf_counter()
-
         self.smallest = None
         self.best = None
         if self.n == 0:
@@ -191,80 +196,115 @@ class Tsp_solver:
 
         end_time = time.perf_counter()
         print(f"Brute force comput time: {end_time - start_time:.6f} seconds")
-
         if verbose:
+            print(f"Brute force nodes explored: {self.nodes_bruteforce}")
             print("meilleur tour trouvé:", self.best, "| distance:", round(self.smallest, 6))
         return (self.best, self.smallest)
 
 
-    def lower_bound(self, current, remaining_cities): 
-        if len(remaining_cities) == 0:
+    def lower_bound(self, current, remaining_cities):
+        """
+        Bound: for each node (current + remaining),
+        add the sum of the two lightest edges (E), divided by 2.
+        Args:
+            current (int): The current city index.
+            remaining_cities (list): List of indices of cities not yet visited.
+        Returns:
+            float: The lower bound estimate.
+        """
+        nodes = [current] + remaining_cities
+        if len(nodes) == 1:
             return self.matrice[current][0]
-        
+
         bound = 0
-        for i in range(0,self.n):
+        for i in nodes:
             lower = None
-            second_lower = None 
-            for cities in remaining_cities:
-                if  i != cities and i in remaining_cities and cities in remaining_cities:
-                    if lower is None or self.matrice[i][cities] < lower :
-                        second_lower = lower
-                        lower = self.matrice[i][cities]
-            
-            # check si lower et second_lower ne sont pas None avant de les utiliser pour les cas ou il y a des none dans la matrice (non testé)
+            second_lower = None
+            for j in nodes:
+                if i == j:
+                    continue
+                dist = self.matrice[i][j]
+                if dist is None:
+                    continue
+                if lower is None or dist < lower:
+                    second_lower = lower
+                    lower = dist
+                elif second_lower is None or dist < second_lower:
+                    second_lower = dist
+
             if lower is not None and second_lower is not None:
-                bound += (lower + second_lower)/2
+                bound += (lower + second_lower) / 2
             elif lower is not None:
                 bound += lower
-        
+
         return bound
         
 
-    def search_branch_and_bound(self, current, remaining_cities, covered_cities,covered_path):
+    def search_branch_and_bound(self, current, remaining_cities, covered_cities, covered_path, verbose=False):
+        """
+        Solve the TSP using the branch and bound
 
+        Args:
+            current (int): The current city index.
+            remaining_cities (list): List of indices of cities not yet visited.
+            covered_cities (float): The total distance covered.
+            covered_path (list): The path of cities visited.
+            verbose (bool, optional): Active mode verbose, prints details of the computation.
+
+        Returns:
+            None: Updates the smallest distance and best path of the instance.
+        """
+        if verbose:
+            self.nodes_bb += 1
         if len(remaining_cities) == 0:
-            last_to_first_dist = self.matrice[current][0] 
+            last_to_first_dist = self.matrice[current][0]
             total_dist = covered_cities + last_to_first_dist
-            full_path = [0] +covered_path + [0]
-
+            full_path = [0] + covered_path + [0]
 
             if self.smallest is None or total_dist < self.smallest:
                 self.smallest = total_dist
                 self.best = full_path
-            # print("trajet suivi:", full_path, "| distance parcouru:", round(total_dist, 2))
             return
 
         if self.smallest is not None and self.smallest < covered_cities:
+            if verbose:
+                print(f"Branch cut: current path {covered_path}, covered distance {covered_cities}")
             return
 
         i = 0
         while i < len(remaining_cities):
-
             next_city = remaining_cities[i]
             next_step_dist = self.matrice[current][next_city]
             new_remaining_cities = remaining_cities[:i] + remaining_cities[i+1:]
             new_path = covered_path[:]
             new_path.append(next_city)
 
-            if self.smallest is None or len(remaining_cities) <= 2 or self.lower_bound( next_city, new_remaining_cities) + covered_cities + next_step_dist < self.smallest:
-                self.search_branch_and_bound(next_city, new_remaining_cities, covered_cities + next_step_dist, new_path)
-            elif i == 0:
-                self.search(next_city, new_remaining_cities, covered_cities + next_step_dist, new_path)
+            if self.smallest is None or len(remaining_cities) <= 2 or self.lower_bound(next_city, new_remaining_cities) + covered_cities + next_step_dist < self.smallest:
+                self.search_branch_and_bound(next_city, new_remaining_cities, covered_cities + next_step_dist, new_path, verbose)
+            else:
+                if verbose:
+                    print(f"Branch cut: current path {new_path}")
             i += 1
 
+    def branch_and_bound(self, verbose=False):
+        """
+        Solves the TSP using the branch and bound method.
 
-    def branch_and_bound(self): 
+        Args:
+            verbose (bool, optional): Active mode verbose, prints details of the computation.
+
+        Returns:
+            tuple: (best route (list), total distance (float)).
+        """
         start_time = time.perf_counter()
-
+        self.nodes_bb = 0
 
         self.smallest = None
         self.best = None
         if self.n == 0:
-            # print("La matrice de ville est vide")
-            return (0.0,[])
+            return (0.0, [])
         if self.n == 1:
-            # print("il n'y a qu'une ville dans la matrice fourni")
-            return (0.0,[])
+            return (0.0, [])
 
         remaining_cities = []
         j = 1
@@ -272,11 +312,12 @@ class Tsp_solver:
             remaining_cities.append(j)
             j += 1
 
-        self.search_branch_and_bound(0, remaining_cities, 0.0, [])
+        self.search_branch_and_bound(0, remaining_cities, 0.0, [], verbose)
 
         end_time = time.perf_counter()
-        print(f"B&B comput time: {end_time - start_time:.6f} seconds")
-        # print("meilleur tour trouvé:", self.best, "| distance:", round(self.smallest, 6))
+        if verbose:
+            print(f"B&B comput time: {end_time - start_time:.6f} seconds")
+            print(f"B&B nodes explored: {self.nodes_bb}")
         return (self.best, self.smallest)
 
 
@@ -434,10 +475,11 @@ tsp = Tsp_solver(create_matrice(10, seed=1))
 
 
 # print("matrice",tsp.matrice)
+# print("Brute force :", tsp.bruteforce(True))
 # print("B&B :", tsp.branch_and_bound())
-# print("Brute force :", tsp.bruteforce())
 # print("NEAREST :", tsp.nearest_neighbourg())
 # print("CHEAPEST :", tsp.cheapest_insertion())
 # print("2opt :", tsp.two_opt_solver(tsp.cheapest_insertion()["path"]))
 
-
+# print("Nodes explored Bruteforce:", tsp.nodes_bruteforce)
+# print("Nodes explored B&B:", tsp.nodes_bb)

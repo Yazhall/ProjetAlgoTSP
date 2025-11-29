@@ -22,15 +22,10 @@ Possibilité de graphes non complets en masquant certaines arêtes.
 Contrôles: Offrir des paramètres reproductibles (seed), des tailles configurables, et l’option d’imposer (ou non) l’inégalité triangulaire.
 
 
-B&B Exigences minimales.
-— Définir et justifier une borne inférieure simple mais efficace. Montrer par un exemple comment elle coupe l’arbre.
-— Comparer le nombre de nœuds explorés avec/sans borne.
-
 2opt Exigences minimales:
 — Implémenter 2-opt (version first-improvement ou best-improvement).
-— Mesurer l’amélioration de la distance par rapport à la solution gloutonne initiale.
-— Étudier l’impact de différents critères d’arrêt (aucune amélioration, nombre max d’itérations,
-temps limite).
+— Mesurer l’amélioration de la distance par rapport à la solution gloutonne initiale. (le mettre dans le mode verbose)
+— Étudier l’impact de différents critères d’arrêt (aucune amélioration, nombre max d’itérations, temps limite).
 
 Interface utilisateur et fonctionnalités:
 Exigences minimales.
