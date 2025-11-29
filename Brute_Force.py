@@ -2,10 +2,10 @@ import random
 import csv
 import math
 import time
+import os
+import json
 
-project = "."
-
-def generate_cities_coords(cities_nbr: int, seed: int = None) -> list:
+def generate_cities_coords(cities_nbr, seed = None):
     if seed is not None:
         random.seed(seed)
     cities = []
@@ -15,11 +15,11 @@ def generate_cities_coords(cities_nbr: int, seed: int = None) -> list:
         cities.append((x, y))
     return cities 
 
-def calculate_distance(first_city: tuple, second_city: tuple) -> float:
+def calculate_distance(first_city, second_city):
     distance = (((first_city[0] - second_city[0]) ** 2) + ((first_city[1] - second_city[1]) ** 2)) ** 0.5
     return distance
 
-def euclidian_matrice(cities: list) -> list:
+def euclidian_matrice(cities):
     matrice = []
     for i in range(len(cities)):
         matrice.append([])
@@ -28,7 +28,7 @@ def euclidian_matrice(cities: list) -> list:
             matrice[i].append(math.ceil(calculate_distance(cities[i],cities[j]) * 100 ) / 100)
     return matrice
 
-def random_matrice(cities_nbr: int, seed: int = None, complete_graph: bool = True) -> list:
+def random_matrice(cities_nbr, seed = None, complete_graph = True):
     if seed is not None:
         random.seed(seed)
     random_matrice = []
@@ -45,33 +45,61 @@ def random_matrice(cities_nbr: int, seed: int = None, complete_graph: bool = Tru
                 random_matrice[i].append(random.randrange(0, 100))
     return random_matrice
 
-def create_matrice(cities_nbr: int, seed: int = None, euclidian: bool = True, complete_graph: bool = True) -> list:
+def create_matrice(cities_nbr, seed = None, euclidian = True, complete_graph = True):
     if euclidian:
         return euclidian_matrice(generate_cities_coords(cities_nbr, seed))
     else:
         return random_matrice(cities_nbr, seed, complete_graph)
 
-def matrice2listeadjacente(matrice: list) -> dict:
+def matrice2listeadjacente(matrice):
+    """Retourne une liste d'adjacence annotée [(voisin, poids), ...] pour chaque sommet."""
     liste_adjacente = {}
     for i in range(len(matrice)):
-        liste_adjacente[i+1] = []
+        liste_adjacente[i] = []
         for j in range(len(matrice[i])):
-            if matrice[i][j] is not None:
-                liste_adjacente[i+1].append(j+1)
+            if matrice[i][j] is not None and i != j:
+                liste_adjacente[i].append((j, matrice[i][j]))
     return liste_adjacente
 
-def write_instance( instance: list, instance_name: str,) -> None:
-    with open(f"{project}/instances/{instance_name}.csv", 'w', newline='') as csvfile:
-        writer = csv.writer(csvfile, delimiter='|')
+def write_instance(instance, instance_name):
+    save_path = os.path.join(os.path.dirname(__file__), "saved")
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+        print(f"Created directory: {save_path}")
+    with open(os.path.join(save_path, f"{instance_name}.csv"), 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile, delimiter=',')
         writer.writerows(instance)
+    print(f"Exported instance to: {os.path.join(save_path, f'{instance_name}.csv')}")
 
-def read_instance(instance_name: str):
+def read_instance(instance_name):
+    save_path = os.path.join(os.path.dirname(__file__), "saved")
     instance = []
-    with open(f"{project}/instances/{instance_name}.csv", 'r', newline='') as csvfile:
-        reader = csv.reader(csvfile, delimiter='|')
+    with open(os.path.join(save_path, f"{instance_name}.csv"), 'r', newline='') as csvfile:
+        reader = csv.reader(csvfile, delimiter=',')
         for row in reader:
-            instance.append(row)
+            instance.append([float(value) for value in row])
     return instance
+
+# def write_instance_json(cities_coords, matrice, instance_name):
+#     """Exporte les coordonnées (optionnelles) et la matrice en JSON simple."""
+#     save_path = os.path.join(os.path.dirname(__file__), "saved")
+#     if not os.path.exists(save_path):
+#         os.makedirs(save_path)
+#         print(f"Created directory: {save_path}")
+#     payload = {
+#         "cities": cities_coords,
+#         "matrix": matrice,
+#     }
+#     with open(os.path.join(save_path, f"{instance_name}.json"), "w", encoding="utf-8") as f:
+#         json.dump(payload, f)
+#     print(f"Exported instance to: {os.path.join(save_path, f'{instance_name}.json')}")
+
+# def read_instance_json(instance_name):
+#     """Charge une instance depuis JSON (coords + matrice)."""
+#     save_path = os.path.join(os.path.dirname(__file__), "saved")
+#     with open(os.path.join(save_path, f"{instance_name}.json"), "r", encoding="utf-8") as f:
+#         payload = json.load(f)
+#     return payload.get("cities"), payload.get("matrix")
 
 # test_bruteforce = [[0.0, 0.1, 0.79, 0.52, 0.39], [0.1, 0.0, 0.34, 1.0, 0.71], [0.79, 0.34, 0.0, 0.66, 0.41], [0.52, 1.0, 0.66, 0.0, 0.5], [0.39, 0.71, 0.41, 0.5, 0.0]]
 # test_bruteforce = [[0.0, 3.1, 0.79, 0.52, 0.39], [3.1, 0.0, 0.34, 1.0, 71], [0.79, 0.34, 0.0, 0.66, 0.41], [0.52, 1.0, 0.66, 0.0, 0.5], [0.39, 71, 0.41, 0.5, 0.0]]
@@ -92,21 +120,35 @@ class Tsp_solver:
         self.n = len(matrice)  # nombre de ville ( n villes)
         self.smallest = None
         self.best = None
+    
+    def search(self, current, remaining_cities, covered_cities, covered_path, verbose=False):
+        """
+        Recursive search for brute force TSP solution.
 
-    def search(self, current, remaining_cities, coverd_cities,covered_path):
+        Args:
+            current (int): The current city index.
+            remaining_cities (list): List of indices of cities not yet visited.
+            covered_cities (float): The total distance covered.
+            covered_path (list): The path of cities visited.
+            verbose (bool, optional): If True, prints the current path and distance. False by default.
+
+        Return:
+            None: Updates the smallest distance and best path attributes of the instance.
+        """
         if len(remaining_cities) == 0:
             last_to_first_dist = self.matrice[current][0] 
-            total_dist = coverd_cities + last_to_first_dist
-            full_path = [0] +covered_path + [0]
+            total_dist = covered_cities + last_to_first_dist
+            full_path = [0] + covered_path + [0]
 
+            if verbose:
+                print("trajet suivi:", full_path, "| distance parcourue:", round(total_dist, 2))
 
             if self.smallest is None or total_dist < self.smallest:
                 self.smallest = total_dist
                 self.best = full_path
-            # print("trajet suivi:", full_path, "| distance parcouru:", round(total_dist, 2))
             return
 
-        # if self.smallest is not None and self.smallest < coverd_cities:
+        # if self.smallest is not None and self.smallest < covered_cities:
         #     return
 
         i = 0
@@ -114,25 +156,29 @@ class Tsp_solver:
             next_city = remaining_cities[i]
             next_step_dist = self.matrice[current][next_city]
             new_remaining_cities = remaining_cities[:i] + remaining_cities[i+1:] 
-            new_path =covered_path[:]
+            new_path = covered_path[:]
             new_path.append(next_city)
-            self.search(next_city, new_remaining_cities, coverd_cities + next_step_dist, new_path)
+            self.search(next_city, new_remaining_cities, covered_cities + next_step_dist, new_path, verbose)
             i += 1
 
+    def bruteforce(self, verbose=False):
+        """
+        Solves the TSP using brute force.
 
-    def bruteforce(self) -> tuple[float, list[int]]: 
-        # start_time = time.perf_counter()
+        Args:
+            verbose (bool): If True, prints details. Defaults to False.
+
+        Returns:
+            tuple: (best route as list, total distance as float).
+        """
         start_time = time.perf_counter()
-
 
         self.smallest = None
         self.best = None
         if self.n == 0:
-            # print("La matrice de ville est vide")
-            return (0.0,[])
+            return (0.0, [])
         if self.n == 1:
-            # print("il n'y a qu'une ville dans la matrice fourni")
-            return (0.0,[])
+            return (0.0, [])
 
         remaining_cities = []
         j = 1
@@ -140,13 +186,14 @@ class Tsp_solver:
             remaining_cities.append(j)
             j += 1
 
-        # construie la liste des villes à visiter (sans predndre en compte la ville de départ 0
-        self.search(0, remaining_cities, 0.0, [])
+        # Construire la liste des villes à visiter (sans prendre en compte la ville de départ 0)
+        self.search(0, remaining_cities, 0.0, [], verbose)
 
         end_time = time.perf_counter()
         print(f"Brute force comput time: {end_time - start_time:.6f} seconds")
 
-        # print("meilleur tour trouvé:", self.best, "| distance:", round(self.smallest, 6))
+        if verbose:
+            print("meilleur tour trouvé:", self.best, "| distance:", round(self.smallest, 6))
         return (self.best, self.smallest)
 
 
@@ -173,11 +220,11 @@ class Tsp_solver:
         return bound
         
 
-    def search_branch_and_bound(self, current, remaining_cities, coverd_cities,covered_path):
+    def search_branch_and_bound(self, current, remaining_cities, covered_cities,covered_path):
 
         if len(remaining_cities) == 0:
             last_to_first_dist = self.matrice[current][0] 
-            total_dist = coverd_cities + last_to_first_dist
+            total_dist = covered_cities + last_to_first_dist
             full_path = [0] +covered_path + [0]
 
 
@@ -187,7 +234,7 @@ class Tsp_solver:
             # print("trajet suivi:", full_path, "| distance parcouru:", round(total_dist, 2))
             return
 
-        if self.smallest is not None and self.smallest < coverd_cities:
+        if self.smallest is not None and self.smallest < covered_cities:
             return
 
         i = 0
@@ -199,10 +246,10 @@ class Tsp_solver:
             new_path = covered_path[:]
             new_path.append(next_city)
 
-            if self.smallest is None or len(remaining_cities) <= 2 or self.lower_bound( next_city, new_remaining_cities) + coverd_cities + next_step_dist < self.smallest:
-                self.search_branch_and_bound(next_city, new_remaining_cities, coverd_cities + next_step_dist, new_path)
+            if self.smallest is None or len(remaining_cities) <= 2 or self.lower_bound( next_city, new_remaining_cities) + covered_cities + next_step_dist < self.smallest:
+                self.search_branch_and_bound(next_city, new_remaining_cities, covered_cities + next_step_dist, new_path)
             elif i == 0:
-                self.search(next_city, new_remaining_cities, coverd_cities + next_step_dist, new_path)
+                self.search(next_city, new_remaining_cities, covered_cities + next_step_dist, new_path)
             i += 1
 
 
@@ -355,7 +402,8 @@ class Tsp_solver:
         print(f"2opt comput time: {end_time - start_time:.6} seconds")
         return (path, best_distance)
 
-tsp = Tsp_solver(create_matrice(9, seed=1))
+
+tsp = Tsp_solver(create_matrice(10, seed=1))
 
 
 # input_matrix = [
@@ -369,6 +417,21 @@ tsp = Tsp_solver(create_matrice(9, seed=1))
 #          [0.12, 1.01, 0.52, 0.62, 0.46, 0.73, 0.96, 0.0]
 #     ]
 # tsp = Tsp_solver(input_matrix)
+# eucli_complet = create_matrice(10)
+# non_eucli_complet = create_matrice(10,None,False)
+# non_eucli_non_complet = create_matrice(10,None,False,False)
+# eucli_non_complet = create_matrice(10,None,True)
+
+# write_instance(eucli_complet,"eucli_complet")
+# write_instance(non_eucli_complet,"non_eucli_complet")
+# write_instance(eucli_non_complet,"eucli_non_complet")
+# write_instance(non_eucli_non_complet,"non_eucli_non_complet")
+
+# print("liste eucli_complet :", matrice2listeadjacente(eucli_complet))
+# print("liste non_eucli_complet :", matrice2listeadjacente(non_eucli_complet))
+# print("liste eucli_non_complet :", matrice2listeadjacente(eucli_non_complet))
+# print("liste non_eucli_non_complet :", matrice2listeadjacente(non_eucli_non_complet))
+
 
 # print("matrice",tsp.matrice)
 # print("B&B :", tsp.branch_and_bound())
@@ -377,5 +440,4 @@ tsp = Tsp_solver(create_matrice(9, seed=1))
 # print("CHEAPEST :", tsp.cheapest_insertion())
 # print("2opt :", tsp.two_opt_solver(tsp.cheapest_insertion()["path"]))
 
-# B&B  1.87s user 0.03s system 97% cpu 1.945 total
-#BrteForce 1.87s user 0.02s system 99% cpu 1.905 total
+
