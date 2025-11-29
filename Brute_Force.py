@@ -439,12 +439,13 @@ class Tsp_solver:
             total += self.matrice[path[k]][path[k + 1]]
         return total
 
-    def two_opt_solver(self, path, verbose=False):
+    def two_opt_solver(self, path, verbose=False, max_iterations=1000):
         """
         Improve a given TSP path using the 2-opt algorithm.
         Args:
             path (list): Initial TSP path to improve.
             verbose (bool, optional): If True, prints details of the computation.
+            max_iterations (int, optional): Maximum number of iterations to perform.
         Returns:
             tuple: (improved path (list), total distance (float)).
         """
@@ -453,19 +454,18 @@ class Tsp_solver:
         initial_dist = best_distance
         opti = True
         iterations = 0
-        while opti is True:
+        while opti is True and iterations < max_iterations:
             iterations += 1
             opti = False
-            for i in range (1,len(path)-2):
-                for j in range (i+2,len(path)-1):
-                    # if j != i-1 and j != i and j != i+1:
-                    a,b = path[i],path[i+1]
-                    c,d = path[j],path[j+1]
+            for i in range(1, len(path) - 2):
+                for j in range(i + 2, len(path) - 1):
+                    a, b = path[i], path[i + 1]
+                    c, d = path[j], path[j + 1]
 
                     old = self.matrice[a][b] + self.matrice[c][d]
                     new = self.matrice[a][c] + self.matrice[b][d]
                     if old > new:
-                        path[i+1:j+1] = path[i+1:j+1][::-1]
+                        path[i + 1:j + 1] = path[i + 1:j + 1][::-1]
                         best_distance += new - old
                         opti = True
                 if opti:
@@ -514,7 +514,7 @@ tsp = Tsp_solver(create_matrice(100, seed=1))
 # print("B&B :", tsp.branch_and_bound())
 # print("NEAREST :", tsp.nearest_neighbourg())
 # print("CHEAPEST :", tsp.cheapest_insertion())
-print("2opt :", tsp.two_opt_solver(tsp.nearest_neighbourg()["path"], verbose=True))
+print("2opt :", tsp.two_opt_solver(tsp.nearest_neighbourg()["path"], True, 21))
 
 # print("Nodes explored Bruteforce:", tsp.nodes_bruteforce)
 # print("Nodes explored B&B:", tsp.nodes_bb)
