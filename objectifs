@@ -13,8 +13,6 @@ validation :
 Vérifiez que D est symétrique (cas métrique), que Dii = 0, et signalez les incohérences.
 
 
-Possibilité de graphes non complets en masquant certaines arêtes.
-
 Interface utilisateur et fonctionnalités:
 Exigences minimales.
 — Interface console (obligatoire) : menu clair pour 

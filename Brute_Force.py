@@ -222,7 +222,7 @@ class Tsp_solver:
             verbose (bool, optional): Active mode verbose, prints details of the computation.
 
         Returns:
-            tuple: (best route (list), total distance (float)).
+            dict: {"path": list, "total_dist": float or None}.
         """
         if verbose:
             self.nodes_bruteforce = 0
@@ -230,9 +230,9 @@ class Tsp_solver:
         self.smallest = None
         self.best = None
         if self.n == 0:
-            return (0.0, [])
+            return {"path": [], "total_dist": 0.0}
         if self.n == 1:
-            return (0.0, [])
+            return {"path": [0, 0], "total_dist": 0.0}
 
         remaining_cities = []
         j = 1
@@ -248,7 +248,7 @@ class Tsp_solver:
             print(f"Brute force comput time: {end_time - start_time:.6f} seconds")
             print(f"Brute force nodes explored: {self.nodes_bruteforce}")
             print("meilleur tour trouvé:", self.best, "| distance:", round(self.smallest, 6))
-        return (self.best, self.smallest)
+        return {"path": self.best, "total_dist": self.smallest}
 
 
     def lower_bound(self, current, remaining_cities):
@@ -347,7 +347,7 @@ class Tsp_solver:
             verbose (bool, optional): Active mode verbose, prints details of the computation.
 
         Returns:
-            tuple: (best route (list), total distance (float)).
+            dict: {"path": list, "total_dist": float or None}.
         """
         start_time = time.perf_counter()
         self.nodes_bb = 0
@@ -355,9 +355,9 @@ class Tsp_solver:
         self.smallest = None
         self.best = None
         if self.n == 0:
-            return (0.0, [])
+            return {"path": [], "total_dist": 0.0}
         if self.n == 1:
-            return (0.0, [])
+            return {"path": [0, 0], "total_dist": 0.0}
 
         remaining_cities = []
         j = 1
@@ -371,18 +371,17 @@ class Tsp_solver:
         if verbose:
             print(f"B&B comput time: {end_time - start_time:.6f} seconds")
             print(f"B&B nodes explored: {self.nodes_bb}")
-        return (self.best, self.smallest)
+        return {"path": self.best, "total_dist": self.smallest}
 
 
     def nearest_neighbourg(self, verbose=False):
         """
-        Solve the TSP using the nearest neighbor heuristic.
-        Note: This implementation assumes the graph is complete.
+        Solve the TSP using the nearest neighbor heuristic (saute les arêtes manquantes).
         Args:
             verbose (bool, optional): If True, prints details of the computation.
 
         Returns:
-            dict: A dictionary containing the path and the total distance.
+            dict: {"path": list, "total_dist": float or None}
         """
         start_time = time.perf_counter()
         nearest = None
@@ -409,7 +408,7 @@ class Tsp_solver:
             if nearest_dist is None:
                 if verbose:
                     print("Nearest neighbor: graphe incomplet, aucune arête disponible.")
-                return {"path": [], "dist": None}
+                return {"path": [], "total_dist": None}
 
             total_dist += nearest_dist
             current = nearest
@@ -420,14 +419,14 @@ class Tsp_solver:
         if self.matrice[current][0] is None:
             if verbose:
                 print("Nearest neighbor: impossible de revenir à 0.")
-            return {"path": [], "dist": None}
+            return {"path": [], "total_dist": None}
 
         total_dist += self.matrice[current][0]
         end_time = time.perf_counter()
         if verbose:
             print(f"Nearest neighbor computation time: {end_time - start_time:.6f} seconds")
 
-        return {"path": path + [0], "dist": total_dist}
+        return {"path": path + [0], "total_dist": total_dist}
 
     def cheapest_insertion(self, verbose=False):
         """
@@ -509,7 +508,7 @@ class Tsp_solver:
         return {"path": tour, "total_dist": total_dist}
 
     def calculate_total_distance(self, path):
-        """Calcule la longueur d'un chemin; retourne inf si une arête est absente."""
+        """Calculates the length of a path; returns inf if an edge is missing."""
         total = 0.0
         for k in range(len(path) - 1):
             dist = self.matrice[path[k]][path[k + 1]]
@@ -526,7 +525,7 @@ class Tsp_solver:
             verbose (bool, optional): If True, prints details of the computation.
             max_iterations (int, optional): Maximum number of iterations to perform.
         Returns:
-            tuple: (improved path (list), total distance (float)).
+            dict: {"path": list, "total_dist": float or None}
         """
         start_time = time.perf_counter()
         best_distance = self.calculate_total_distance(path)
@@ -561,7 +560,7 @@ class Tsp_solver:
             rel = (gain / initial_dist * 100) if initial_dist != 0 else 0
             print(f"2opt initial: {initial_dist:.4f}, final: {best_distance:.4f}, gain: {gain:.4f} ({rel:.2f}%), iters: {iterations}")
             print(f"2opt comput time: {end_time - start_time:.6f} seconds")
-        return (path, best_distance)
+        return {"path": path, "total_dist": best_distance}
 
 
 tsp = Tsp_solver(create_matrice(10, seed=None, euclidian=False, complete_graph=False, force_triangle=False))
@@ -583,7 +582,7 @@ tsp = Tsp_solver(create_matrice(10, seed=None, euclidian=False, complete_graph=F
 # non_eucli_non_complet = create_matrice(10, None, False, False)
 # eucli_non_complet = create_matrice(10, None, True)
 
-write_instance(tsp.matrice,"test non complet")
+# write_instance(tsp.matrice,"test non complet")
 # write_instance(non_eucli_complet,"non_eucli_complet")
 # write_instance(eucli_non_complet,"eucli_non_complet")
 # write_instance(non_eucli_non_complet,"non_eucli_non_complet")
