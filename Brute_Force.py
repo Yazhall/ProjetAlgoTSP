@@ -239,7 +239,6 @@ class Tsp_solver:
 
         return bound
         
-
     def search_branch_and_bound(self, current, remaining_cities, covered_cities, covered_path, verbose=False):
         """
         Solve the TSP using the branch and bound
@@ -321,7 +320,16 @@ class Tsp_solver:
         return (self.best, self.smallest)
 
 
-    def nearest_neighbourg(self):
+    def nearest_neighbourg(self, verbose=False):
+        """
+        Solve the TSP using the nearest neighbor heuristic.
+
+        Args:
+            verbose (bool, optional): If True, prints details of the computation.
+
+        Returns:
+            dict: A dictionary containing the path and the total distance.
+        """
         start_time = time.perf_counter()
         nearest = None
         current = 0
@@ -344,22 +352,32 @@ class Tsp_solver:
             total_dist += nearest_dist
             current = nearest
             path.append(current)
+            if verbose:
+                print(f"Visited city: {current}, Total distance: {total_dist}")
+
         total_dist += self.matrice[current][0]
         end_time = time.perf_counter()
-        print(f"near comput time: {end_time - start_time:.6f} seconds")
+        if verbose:
+            print(f"Nearest neighbor computation time: {end_time - start_time:.6f} seconds")
 
-        # print("trajet suivi:", path + [0], "| distance parcouru:", round(total_dist, 2))
-        return {"path":path + [0],"dist": total_dist}
+        return {"path": path + [0], "dist": total_dist}
 
+    def cheapest_insertion(self, verbose=False):
+        """
+        Solve the TSP using the cheapest insertion heuristic.
 
-    
-    def cheapest_insertion(self):
+        Args:
+            verbose (bool, optional): If True, prints details of the computation.
+
+        Returns:
+            dict: A dictionary containing the path and the total distance.
+        """
         start_time = time.perf_counter()
         if self.n == 0:
-            print("La matrice de ville est vide")
-            return ([], 0.0)
+            print("The city matrix is empty")
+            return {"path": [], "total_dist": 0.0}
         if self.n == 1:
-            return ([0, 0], 0.0)
+            return {"path": [0, 0], "total_dist": 0.0}
 
         nearest_city = None
         nearest_dist = None
@@ -371,8 +389,8 @@ class Tsp_solver:
                 nearest_city = city
 
         if nearest_city is None:
-            print("Impossible de trouver une ville atteignable depuis la ville 0")
-            return (None,None)
+            print("Unable to find a reachable city from city 0")
+            return {"path": None, "total_dist": None}
 
         tour = [0, nearest_city, 0]
         visited = set(tour[:-1])
@@ -400,6 +418,8 @@ class Tsp_solver:
 
             tour.insert(best_position + 1, best_city)
             visited.add(best_city)
+            if verbose:
+                print(f"Inserted city: {best_city} at position {best_position + 1}, Current tour: {tour}")
 
         total_dist = 0.0
         for idx in range(len(tour) - 1):
@@ -407,8 +427,10 @@ class Tsp_solver:
             total_dist += dist
 
         end_time = time.perf_counter()
-        print(f"cheap comput time: {end_time - start_time:.6} seconds")
-        return {"path":tour, "total_dist":total_dist}
+        if verbose:
+            print(f"Cheapest insertion computation time: {end_time - start_time:.6f} seconds")
+
+        return {"path": tour, "total_dist": total_dist}
 
 
 
