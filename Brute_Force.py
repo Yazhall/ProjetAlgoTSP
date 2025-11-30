@@ -124,37 +124,14 @@ def read_instance(instance_name):
             instance.append([float(value) for value in row])
     return instance
 
-# def write_instance_json(cities_coords, matrice, instance_name):
-#     """Exporte les coordonnées (optionnelles) et la matrice en JSON simple."""
-#     save_path = os.path.join(os.path.dirname(__file__), "saved")
-#     if not os.path.exists(save_path):
-#         os.makedirs(save_path)
-#         print(f"Created directory: {save_path}")
-#     payload = {
-#         "cities": cities_coords,
-#         "matrix": matrice,
-#     }
-#     with open(os.path.join(save_path, f"{instance_name}.json"), "w", encoding="utf-8") as f:
-#         json.dump(payload, f)
-#     print(f"Exported instance to: {os.path.join(save_path, f'{instance_name}.json')}")
-
-# def read_instance_json(instance_name):
-#     """Charge une instance depuis JSON (coords + matrice)."""
-#     save_path = os.path.join(os.path.dirname(__file__), "saved")
-#     with open(os.path.join(save_path, f"{instance_name}.json"), "r", encoding="utf-8") as f:
-#         payload = json.load(f)
-#     return payload.get("cities"), payload.get("matrix")
-
-# test_bruteforce = [[0.0, 0.1, 0.79, 0.52, 0.39], [0.1, 0.0, 0.34, 1.0, 0.71], [0.79, 0.34, 0.0, 0.66, 0.41], [0.52, 1.0, 0.66, 0.0, 0.5], [0.39, 0.71, 0.41, 0.5, 0.0]]
-# test_bruteforce = [[0.0, 3.1, 0.79, 0.52, 0.39], [3.1, 0.0, 0.34, 1.0, 71], [0.79, 0.34, 0.0, 0.66, 0.41], [0.52, 1.0, 0.66, 0.0, 0.5], [0.39, 71, 0.41, 0.5, 0.0]]
-# test_bruteforce = [
-#         #  A       B        C      D      E
-#     #  A [0.0,    1.1,    0.79,   0.52,   0.39], 
-#     #  B [1.1,    0.0,    0.34,   1.0,    0.71], 
-#     #  C [0.79,   0.34,   0.0,    0.66,   0.41], 
-#     #  D [0.52,   1.0,    0.66,   0.0,    0.5], 
-#     #  E [0.39,   0.71,   0.41,   0.5,    0.0]
-#      ]
+def write_solution_json(path, cost, filename="solution.json"):
+    """Saves a solution (path + cost) in JSON format in the saved/ directory."""
+    save_path = os.path.join(os.path.dirname(__file__), "saved")
+    os.makedirs(save_path, exist_ok=True)
+    payload = {"path": path, "cost": cost}
+    with open(os.path.join(save_path, filename), "w", encoding="utf-8") as file:
+        json.dump(payload, file, indent=4)
+    print(f"Solution sauvegardée dans saved/{filename}")
 
 
 class Tsp_solver:
@@ -247,9 +224,8 @@ class Tsp_solver:
         if verbose:
             print(f"Brute force comput time: {end_time - start_time:.6f} seconds")
             print(f"Brute force nodes explored: {self.nodes_bruteforce}")
-            print("meilleur tour trouvé:", self.best, "| distance:", round(self.smallest, 6))
-        return {"path": self.best, "total_dist": self.smallest}
-
+            print("meilleur tour trouvé:", self.best, "| distance:", round(self.smallest, 2))
+        return {"path": self.best, "total_dist": round(self.smallest, 2)}
 
     def lower_bound(self, current, remaining_cities):
         """
@@ -371,8 +347,7 @@ class Tsp_solver:
         if verbose:
             print(f"B&B comput time: {end_time - start_time:.6f} seconds")
             print(f"B&B nodes explored: {self.nodes_bb}")
-        return {"path": self.best, "total_dist": self.smallest}
-
+        return {"path": self.best, "total_dist": round(self.smallest, 2)}
 
     def nearest_neighbourg(self, verbose=False):
         """
@@ -426,7 +401,7 @@ class Tsp_solver:
         if verbose:
             print(f"Nearest neighbor computation time: {end_time - start_time:.6f} seconds")
 
-        return {"path": path + [0], "total_dist": total_dist}
+        return {"path": path + [0], "total_dist": round(total_dist, 2)}
 
     def cheapest_insertion(self, verbose=False):
         """
@@ -505,7 +480,7 @@ class Tsp_solver:
         if verbose:
             print(f"Cheapest insertion computation time: {end_time - start_time:.6f} seconds")
 
-        return {"path": tour, "total_dist": total_dist}
+        return {"path": tour, "total_dist": round(total_dist, 2)}
 
     def calculate_total_distance(self, path):
         """Calculates the length of a path; returns inf if an edge is missing."""
@@ -563,20 +538,10 @@ class Tsp_solver:
         return {"path": path, "total_dist": best_distance}
 
 
-# tsp = Tsp_solver(create_matrice(10, seed=None, euclidian=False, complete_graph=False, force_triangle=False))
+tsp = Tsp_solver(create_matrice(10, seed=None, euclidian=False, complete_graph=False, force_triangle=False))
 
 
-# input_matrix = [
-#         [0.0, 1.03, 0.59, 0.53, 0.42, 0.71, 0.95, 0.12],
-#          [1.03, 0.0, 0.66, 0.96, 0.66, 0.43, 0.19, 1.01],
-#          [0.59, 0.66, 0.0, 0.88, 0.52, 0.61, 0.69, 0.52],
-#          [0.53, 0.96, 0.88, 0.0, 0.38, 0.53, 0.81, 0.62],
-#          [0.42, 0.66, 0.52, 0.38, 0.0, 0.29, 0.55, 0.46],
-#          [0.71, 0.43, 0.61, 0.53, 0.29, 0.0, 0.28, 0.73],
-#          [0.95, 0.19, 0.69, 0.81, 0.55, 0.28, 0.0, 0.96],
-#          [0.12, 1.01, 0.52, 0.62, 0.46, 0.73, 0.96, 0.0]
-#     ]
-# tsp = Tsp_solver(input_matrix)
+
 # eucli_complet = create_matrice(10, seed=1, euclidian=True, complete_graph=True, force_triangle=False)
 # non_eucli_complet = create_matrice(10, None, False, True, True)
 # non_eucli_non_complet = create_matrice(10, None, False, False)

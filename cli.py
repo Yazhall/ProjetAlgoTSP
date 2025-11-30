@@ -8,6 +8,7 @@ from Brute_Force import (
     create_matrice,
     read_instance,
     write_instance,
+    write_solution_json,
     matrice2listeadjacente,
 )
 
@@ -67,15 +68,6 @@ def load_instance():
     except FileNotFoundError:
         print("Fichier introuvable.")
         return None
-
-
-def save_solution(path, cost, filename="solution.json"):
-    payload = {"path": path, "cost": cost}
-    save_path = os.path.join(os.path.dirname(__file__), "saved")
-    os.makedirs(save_path, exist_ok=True)
-    with open(os.path.join(save_path, filename), "w", encoding="utf-8") as file:
-        json.dump(payload, file, indent=4)
-    print(f"Solution sauvegardée dans saved/{filename}")
 
 
 def run_solver(matrice, method, verbose=False, max_iter=None):
@@ -176,7 +168,7 @@ def main():
             choice = input("Sauvegarder (s) la solution, (i) l'instance, (a) les deux, autre pour ignorer [none]: ").strip().lower()
             if choice in ("s", "a"):
                 filename = input("Nom du fichier solution (sans extension, .json ajouté) [solution]: ").strip() or "solution"
-                save_solution(result["path"], result["total_dist"], filename=f"{filename}.json")
+                write_solution_json(result["path"], result["total_dist"], filename=f"{filename}.json")
             if choice in ("i", "a"):
                 fname = input("Nom du fichier instance (sans extension, .csv ajouté) [last_generated]: ").strip() or "last_generated"
                 write_instance(matrice, fname)
