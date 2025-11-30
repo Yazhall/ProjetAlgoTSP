@@ -563,7 +563,7 @@ class Tsp_solver:
         return {"path": path, "total_dist": best_distance}
 
 
-tsp = Tsp_solver(create_matrice(10, seed=None, euclidian=False, complete_graph=False, force_triangle=False))
+# tsp = Tsp_solver(create_matrice(10, seed=None, euclidian=False, complete_graph=False, force_triangle=False))
 
 
 # input_matrix = [
@@ -594,11 +594,11 @@ tsp = Tsp_solver(create_matrice(10, seed=None, euclidian=False, complete_graph=F
 
 
 # print("matrice",tsp.matrice)
-print("Brute force :", tsp.bruteforce())
-print("B&B :", tsp.branch_and_bound())
-print("NEAREST :", tsp.nearest_neighbourg())
-print("CHEAPEST :", tsp.cheapest_insertion())
-print("2opt :", tsp.two_opt_solver(tsp.nearest_neighbourg()["path"]))
+# print("Brute force :", tsp.bruteforce())
+# print("B&B :", tsp.branch_and_bound())
+# print("NEAREST :", tsp.nearest_neighbourg())
+# print("CHEAPEST :", tsp.cheapest_insertion())
+# print("2opt :", tsp.two_opt_solver(tsp.nearest_neighbourg()["path"]))
 
 # print("Nodes explored Bruteforce:", tsp.nodes_bruteforce)
 # print("Nodes explored B&B:", tsp.nodes_bb)

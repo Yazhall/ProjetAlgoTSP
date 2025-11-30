@@ -1,8 +1,11 @@
 attendu du rapport
-(i) modéliser proprement un graphe pondéré, 
-(ii) implémenter plusieurs méthodes de résolution complémentaires (exactes, heuristiques et métaheuristiques), 
-(iii) concevoir une expérimentation permettant de comparer rigoureusement des approches, 
-(iv) pratiquer la mesure de performances (temps, mémoire, qualité), et (v) produire un rapport clair et argumenté.
+1. Les décisions de conception générales (structures de données, organisation du code, choix
+d’algorithmes).
+2. Les défis rencontrés et comment vous les avez surmontés (erreurs, cas limites, optimisation,
+tests).
+3. Une évaluation quantitative et qualitative de votre solution (temps d’exécution, qualité des
+solutions, lisibilité, robustesse).
+4. Un plan d’expérimentations reproductibles (tailles d’instances, métriques, protocole, paramètres, scripts)
 
 
  proposerez au moins deux représentations internes : 
@@ -21,8 +24,8 @@ Exigences minimales.
     (iii) lancer/afficher le résultat (coût, tour),
     (iv) sauvegarder la solution.
 — Mode verbeux : traces textuelles optionnelles montrant les décisions (utile en débogage et pour l’oral).
-— Visualisation (optionnelle mais recommandée) : tracé 2D du tour via matplotlib (euclidien) ou graphe via networkx.
 — Paramètres : taille n, seed aléatoire, limite de temps/itérations, choix de la stratégie (glouton, 2-opt, etc.).
+— Visualisation (optionnelle mais recommandée) : tracé 2D du tour via matplotlib (euclidien) ou graphe via networkx.
 
  Analyse de performance et protocole expérimental
  — Temps d’exécution (moyenne/écart-type sur k ≥ 5 répétitions, même seed par méthode si pertinent).
