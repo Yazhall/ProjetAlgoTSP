@@ -44,8 +44,11 @@ def choose_method():
 def generate_instance():
     n = ask_number("Taille de l'instance n", 8)
     if n < 5:
-        print("Les instances doivent avoir au moins 5 villes.")
-        return None
+        print("Taille trop petite, utilisation de 5.")
+        n = 5
+    if n > 60:
+        print("Taille trop grande, utilisation de 60.")
+        n = 60
     seed = ask_number("Seed aléatoire (int)", None)
     euclidian = input("Euclidienne ? (y/n) [y]: ").strip().lower() != "n"
     
@@ -85,8 +88,8 @@ def run_solver(matrice, method, verbose=False, max_iter=None):
     if method == "nearest":
         return tsp.nearest_neighbourg(verbose=verbose)
     if method == "cheapest":
-        if len(matrice) > 100:
-            print("Cheapest insertion non autorisé au-delà de 100 villes.")
+        if len(matrice) > 60:
+            print("Cheapest insertion non autorisé au-delà de 60 villes.")
             return {"path": [], "total_dist": None}
         return tsp.cheapest_insertion(verbose=verbose)
     if method == "two-opt":

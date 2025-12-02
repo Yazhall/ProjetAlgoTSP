@@ -1,50 +1,26 @@
-attendu du rapport
-1. Les décisions de conception générales (structures de données, organisation du code, choix
-d’algorithmes).
-2. Les défis rencontrés et comment vous les avez surmontés (erreurs, cas limites, optimisation,
-tests).
-3. Une évaluation quantitative et qualitative de votre solution (temps d’exécution, qualité des
-solutions, lisibilité, robustesse).
-4. Un plan d’expérimentations reproductibles (tailles d’instances, métriques, protocole, paramètres, scripts)
+
+- Brute Force
+  - Mesurer temps et solution pour n ∈ {8, 9, 10, 11} sur instances euclidiennes et non-euclidiennes (complètes).
+  - Servir de référence de qualité pour comparer les heuristiques et B&B.
+
+- Branch & Bound
+  - Comparer nombre de nœuds explorés avec/sans borne sur n ∈ {8, 9, 10, 11}.
+  - Illustrer au moins un exemple où la borne coupe (log ou compteur).
+
+- Heuristiques (Nearest, Cheapest)
+  - Mesurer temps et qualité vs meilleure solution connue (brute force ou meilleur trouvé) pour n ∈ {8, 9, 10, 11}.
+  - Tester sur euclidien vs non-euclidien, complet vs non complet (attendu : échec si pas de cycle).
+
+- 2-opt
+  - Mesurer amélioration absolue et relative par rapport à la solution gloutonne initiale (nearest ou cheapest) sur n ∈ {8, 9, 10, 11}.
+  - Varier critères d’arrêt (aucune amélioration, max itérations) et noter nb d’itérations.
+
+- Sensibilité à la taille
+  - Série n ∈ {10, 20, 30, 40, 60} pour heuristiques et 2-opt : temps, qualité, écart relatif.
 
 
- proposerez au moins deux représentations internes : 
- (i) matrice des distances D ∈ R^(n×n) 
- (ii) liste d’adjacence annotée (utile pour des graphes non complets)
+- Présentation des résultats
+  - Tableaux par n et méthode (temps, qualité, nœuds/itérations).
+  - Graphiques : temps vs n ; qualité/écart vs n ; éventuellement nœuds B&B vs n.
+  - Commentaires : expliquer les écarts de performance selon type d’instance et méthode.
 
-validation :
-Vérifiez que D est symétrique (cas métrique), que Dii = 0, et signalez les incohérences.
-
-
- Analyse de performance et protocole expérimental
- — Temps d’exécution (moyenne/écart-type sur k ≥ 5 répétitions, même seed par méthode si pertinent).
-— Qualité : longueur du tour :, % d’écart relatif à la meilleure valeur obtenue parmi toutes vos méthodes.
-— Taille de l’arbre exploré : nombre de nœuds (B&B), nb d’itérations (2-opt), etc.
-— Mémoire (si mesurable facilement) : pic d’utilisation.
-
-Facteurs d’étude:
-— Taille n : au minimum n ∈ {10, 20, 30, 40} (plus si temps disponible).
-— Type d’instance : euclidienne vs matrice arbitraire :, dense vs éparse.
-— Paramètres heuristiques : critères d’arrêt, initialisation, ordre d’exploration.
-
-Présentation des résultats:
-— Tableaux comparatifs par n et par méthode (temps, qualité, etc.).
-— Graphiques (temps en fonction de n :, qualité en fonction de n). Axes et unités clairement indiqués.
-— Commentaires analytiques : expliquer pourquoi telle méthode se comporte mieux/pire selon les cas.
-
-Taille adaptable et cas limites:
-Exigences minimales.
-— Supporter des tailles variables (au moins n ∈ [5, 60]). Pour les méthodes exactes, limiter
-automatiquement n et prévenir l’utilisateur.
-— Gérer les cas dégénérés (n=1, n=2, distances nulles, distances très grandes, graphes non
-complets si vous en autorisez).
-
-Conception, architecture et qualité logicielle
-— Organisation du code : séparer clairement 
-    (i) modèles (graphe/instances), 
-    (ii) algorithmes,
-    (iii) I/O et visualisation,
-    (iv) scripts d’expériences.
-— Lisibilité : noms explicites, commentaires pertinents, docstrings.
-— Tests unitaires : au moins des tests pour les fonctions critiques (calcul de coût, validité d’un tour, opérations 2-opt, bornes B&B).
-— Reproductibilité : fixer les seeds, sauvegarder les instances et résultats, fournir un README.

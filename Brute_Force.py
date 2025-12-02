@@ -158,8 +158,8 @@ class Tsp_solver:
         Return:
             None: Updates the smallest distance and best path attributes of the instance.
         """
-        if verbose:
-            self.nodes_bruteforce += 1
+        # if verbose:
+        self.nodes_bruteforce += 1
         if len(remaining_cities) == 0:
             last_to_first_dist = self.matrice[current][0]
             if last_to_first_dist is None:
@@ -201,8 +201,8 @@ class Tsp_solver:
         Returns:
             dict: {"path": list, "total_dist": float or None}.
         """
-        if verbose:
-            self.nodes_bruteforce = 0
+        self.nodes_bruteforce = 0
+        # if verbose:
         start_time = time.perf_counter()
         self.smallest = None
         self.best = None
@@ -221,16 +221,16 @@ class Tsp_solver:
         self.search(0, remaining_cities, 0.0, [], verbose)
 
         end_time = time.perf_counter()
+        print(f"Brute force nodes explored: {self.nodes_bruteforce}")
         if verbose:
             print(f"Brute force comput time: {end_time - start_time:.6f} seconds")
-            print(f"Brute force nodes explored: {self.nodes_bruteforce}")
             print("meilleur tour trouvé:", self.best, "| distance:", round(self.smallest, 2))
         return {"path": self.best, "total_dist": round(self.smallest, 2)}
 
     def lower_bound(self, current, remaining_cities):
         """
-        Bound: for each node (current + remaining),
-        add the sum of the two lightest edges (E), divided by 2.
+        Bound: for each node (current + remaining), add the sum of its two lightest incident
+        edges in the entire graph, divided by 2. This remains admissible même en non-euclidien.
         Args:
             current (int): The current city index.
             remaining_cities (list): List of indices of cities not yet visited.
@@ -238,14 +238,13 @@ class Tsp_solver:
             float: The lower bound estimate.
         """
         nodes = [current] + remaining_cities
-        if len(nodes) == 1:
-            return self.matrice[current][0]
+        n = self.n
 
         bound = 0
         for i in nodes:
             lower = None
             second_lower = None
-            for j in nodes:
+            for j in range(n):
                 if i == j:
                     continue
                 dist = self.matrice[i][j]
@@ -278,8 +277,8 @@ class Tsp_solver:
         Returns:
             None: Updates the smallest distance and best path of the instance.
         """
-        if verbose:
-            self.nodes_bb += 1
+        self.nodes_bb += 1
+        # if verbose:
         if len(remaining_cities) == 0:
             last_to_first_dist = self.matrice[current][0]
             if last_to_first_dist is None:
@@ -346,7 +345,7 @@ class Tsp_solver:
         end_time = time.perf_counter()
         if verbose:
             print(f"B&B comput time: {end_time - start_time:.6f} seconds")
-            print(f"B&B nodes explored: {self.nodes_bb}")
+        print(f"B&B nodes explored: {self.nodes_bb}")
         return {"path": self.best, "total_dist": round(self.smallest, 2)}
 
     def nearest_neighbourg(self, verbose=False):
@@ -358,6 +357,7 @@ class Tsp_solver:
         Returns:
             dict: {"path": list, "total_dist": float or None}
         """
+        iterations = 0
         start_time = time.perf_counter()
         nearest = None
         current = 0
@@ -371,6 +371,7 @@ class Tsp_solver:
             i += 1
         
         while len(path) < self.n:
+            iterations += 1
             nearest_dist = None
             for k in remaining_cities:
                 w = self.matrice[current][k]
@@ -400,7 +401,7 @@ class Tsp_solver:
         end_time = time.perf_counter()
         if verbose:
             print(f"Nearest neighbor computation time: {end_time - start_time:.6f} seconds")
-
+        print("nearest",iterations)
         return {"path": path + [0], "total_dist": round(total_dist, 2)}
 
     def cheapest_insertion(self, verbose=False):
@@ -413,6 +414,7 @@ class Tsp_solver:
         Returns:
             dict: A dictionary containing the path and the total distance.
         """
+        iteration = 0
         start_time = time.perf_counter()
         if self.n == 0:
             print("The city matrix is empty")
@@ -442,7 +444,7 @@ class Tsp_solver:
             best_city = None
             best_position = None
             best_increase = None
-
+            iteration += 1
             for city in range(self.n):
                 if city not in visited:
                     for idx in range(len(tour) - 1):
@@ -479,7 +481,7 @@ class Tsp_solver:
         end_time = time.perf_counter()
         if verbose:
             print(f"Cheapest insertion computation time: {end_time - start_time:.6f} seconds")
-
+        print("cheapest",iteration)
         return {"path": tour, "total_dist": round(total_dist, 2)}
 
     def calculate_total_distance(self, path):
@@ -492,7 +494,7 @@ class Tsp_solver:
             total += dist
         return total
 
-    def two_opt_solver(self, path, verbose=False, max_iterations=1000):
+    def two_opt_solver(self, path, verbose=False, max_iterations=10000):
         """
         Improve a given TSP path using the 2-opt algorithm.
         Args:
@@ -502,6 +504,7 @@ class Tsp_solver:
         Returns:
             dict: {"path": list, "total_dist": float or None}
         """
+
         start_time = time.perf_counter()
         best_distance = self.calculate_total_distance(path)
         initial_dist = best_distance
@@ -530,15 +533,15 @@ class Tsp_solver:
                 if opti:
                     break
         end_time = time.perf_counter()
-        if verbose:
-            gain = initial_dist - best_distance
-            rel = (gain / initial_dist * 100) if initial_dist != 0 else 0
-            print(f"2opt initial: {initial_dist:.4f}, final: {best_distance:.4f}, gain: {gain:.4f} ({rel:.2f}%), iters: {iterations}")
-            print(f"2opt comput time: {end_time - start_time:.6f} seconds")
+        # if verbose:
+        gain = initial_dist - best_distance
+        rel = (gain / initial_dist * 100) if initial_dist != 0 else 0
+        print(f"2opt initial: {initial_dist:.4f}, final: {best_distance:.4f}, gain: {gain:.4f} ({rel:.2f}%), iters: {iterations}")
+        print(f"2opt comput time: {end_time - start_time:.6f} seconds")
         return {"path": path, "total_dist": best_distance}
 
 
-tsp = Tsp_solver(create_matrice(10, seed=None, euclidian=False, complete_graph=False, force_triangle=False))
+tsp = Tsp_solver(create_matrice(16, seed=1, euclidian=False, complete_graph=True, force_triangle=False))
 
 
 
@@ -564,6 +567,77 @@ tsp = Tsp_solver(create_matrice(10, seed=None, euclidian=False, complete_graph=F
 # print("NEAREST :", tsp.nearest_neighbourg())
 # print("CHEAPEST :", tsp.cheapest_insertion())
 # print("2opt :", tsp.two_opt_solver(tsp.nearest_neighbourg()["path"]))
+# print("2opt :", tsp.two_opt_solver(tsp.cheapest_insertion()["path"]))
 
 # print("Nodes explored Bruteforce:", tsp.nodes_bruteforce)
 # print("Nodes explored B&B:", tsp.nodes_bb)
+
+
+# --- Script de test des méthodes pour différentes tailles ---
+def benchmark_sizes(repetitions=1, methods=None):
+    """
+    Bench des méthodes sur différentes tailles, avec moyenne sur plusieurs répétitions.
+    Args:
+        repetitions (int): nombre de répétitions pour la moyenne des temps.
+        methods (list[str] | None): sous-ensemble de méthodes à tester. None -> toutes.
+    """
+    sizes = [8, 9, 10, 11, 20, 30, 40, 50, 60]
+    all_methods = ["bruteforce", "b&b", "nearest", "cheapest", "twoopt_nearest", "twoopt_cheapest"]
+    methods = methods or all_methods
+    results = []
+    for n in sizes:
+        for method in methods:
+            if method in ("bruteforce", "b&b") and n > 11:
+                results.append({"n": n, "method": method, "status": "skipped (>11)"})
+                continue
+            total_time = 0.0
+            last_res = None
+            for _ in range(repetitions):
+                matrice = create_matrice(n, seed=1, euclidian=False, complete_graph=True, force_triangle=False)
+                solver = Tsp_solver(matrice)
+                start = time.perf_counter()
+                if method == "bruteforce":
+                    last_res = solver.bruteforce(verbose=False)
+                elif method == "b&b":
+                    last_res = solver.branch_and_bound(verbose=False)
+                elif method == "nearest":
+                    last_res = solver.nearest_neighbourg(verbose=False)
+                elif method == "cheapest":
+                    last_res = solver.cheapest_insertion(verbose=False)
+                elif method == "twoopt_nearest":
+                    base = solver.nearest_neighbourg(verbose=False)
+                    if not base or not base.get("path"):
+                        last_res = base
+                    else:
+                        last_res = solver.two_opt_solver(base["path"], verbose=False, max_iterations=1000)
+                elif method == "twoopt_cheapest":
+                    base = solver.cheapest_insertion(verbose=False)
+                    if not base or not base.get("path"):
+                        last_res = base
+                    else:
+                        last_res = solver.two_opt_solver(base["path"], verbose=False, max_iterations=1000)
+                else:
+                    last_res = None
+                total_time += time.perf_counter() - start
+            if last_res is None:
+                results.append({"n": n, "method": method, "status": "failed"})
+            else:
+                avg_time = total_time / repetitions
+                results.append({
+                    "n": n,
+                    "method": method,
+                    "cost": last_res.get("total_dist"),
+                    "path_len": len(last_res.get("path") or []),
+                    "time": avg_time,
+                    "repetitions": repetitions,
+                })
+    # Affichage simple
+    for r in results:
+        if "status" in r:
+            print(f"n={r['n']:>2} | {r['method']:>15} | {r['status']}")
+        else:
+            print(f"n={r['n']:>2} | {r['method']:>15} | coût= {round(r['cost'],2)} | len= {r['path_len']} | t_moy= {r['time']*10**6:.0f} µs sur {r['repetitions']} runs")
+    return results
+
+# Décommenter pour lancer rapidement le benchmark
+# benchmark_sizes(20,["bruteforce","b&b","nearest","cheapest","twoopt_nearest","twoopt_cheapest"])
